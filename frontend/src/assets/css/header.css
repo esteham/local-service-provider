@@ -154,3 +154,52 @@
 .dropdown:hover .dropdown-menu {
   display: block;
 }
+
+
+/* Mega Dropdown Styles */
+.mega-dropdown {
+  position: relative;
+}
+
+.mega-dropdown .mega-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  width: 68vw;
+  display: none;
+  background-color: #fff;
+  z-index: 1000;
+  border-top: 3px solid #007bff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mega-dropdown:hover .mega-menu {
+  display: block;
+}
+
+.mega-menu .row > div {
+  padding: 10px;
+}
+
+.mega-menu h6 {
+  margin-bottom: 10px;
+}
+
+.mega-menu ul {
+  padding-left: 0;
+}
+
+.mega-menu li {
+  margin-bottom: 8px;
+}
+
+.mega-menu .btn-link {
+  text-decoration: none;
+  color: #212529;
+}
+
+.mega-menu .btn-link:hover {
+  text-decoration: underline;
+  color: #0d6efd;
+}

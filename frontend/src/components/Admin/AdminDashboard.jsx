@@ -42,6 +42,7 @@ import FinanceContent from "./pages/FinanceContent";
 import MessagesContent from "./pages/MessagesContent";
 import NotificationsContent from "./pages/NotificationsContent";
 import SettingsContent from "./pages/SettingsContent";
+import ServicesContent from "./pages/ServicesContent";
 
 const ModernAdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -673,6 +674,7 @@ const ModernAdminDashboard = () => {
     { id: "messages", label: "Messages", icon: FaEnvelope },
     { id: "notifications", label: "Notifications", icon: FaBell },
     { id: "settings", label: "Settings", icon: FaCog },
+    { id: "services", label: "Services", icon: FaTools },
   ];
 
   const renderSidebar = () => (
@@ -1203,6 +1205,8 @@ const ModernAdminDashboard = () => {
         return renderRequests();
       case "categories":
         return renderCategories();
+      case "services":
+        return <ServicesContent />;
       case "divisions":
         return <DivisionContent />;
       case "analytics":

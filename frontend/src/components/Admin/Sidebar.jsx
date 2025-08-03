@@ -14,7 +14,8 @@ import {
   BoxArrowRight,
   MoonFill,
   SunFill,
-  Grid3x3GapFill
+  Grid3x3GapFill,
+  Tools
 } from "react-bootstrap-icons";
 import { motion as MotionDiv, AnimatePresence } from "framer-motion";
 import "../../assets/css/Sidebar.css";
@@ -34,6 +35,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: "dashboard", icon: HouseFill, label: "Dashboard", badge: 0 },
     { id: "worker", icon: PeopleFill, label: "Worker", badge: 0 },
     { id: "category", icon: FolderFill, label: "Category", badge: 0 },
+    { id: "services", icon: Tools, label: "Services", badge: 0 },
     { id: "division", icon: Building, label: "Division", badge: 0 },
     { id: "tasks", icon: Grid3x3GapFill, label: "Tasks", badge: 0 },
     { id: "finance", icon: CashStack, label: "Finance", badge: 0 },
@@ -196,7 +198,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           transition={{ delay: 0.2 }}
         >
           <div>v2.4.1 • {new Date().getFullYear()}</div>
-          <div className="mt-1">© Xethub</div>
+          <div className="mt-1"> Xethub</div>
         </MotionDiv.div>
       )}
     </Col>

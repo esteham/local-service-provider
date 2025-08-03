@@ -1,150 +1,145 @@
-import React from 'react';
-import { Container, Row, Col, Card, Badge, Button, Tab, Tabs, ListGroup } from 'react-bootstrap';
-import { 
-  WrenchIcon,
-  BoltIcon,
-  FireIcon,
-  SunIcon,
-  SparklesIcon,
-  ShieldCheckIcon,
-  CheckCircleIcon,
-  ClipboardDocumentCheckIcon
-} from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Badge, Button, Tab, Tabs, Modal, Form } from 'react-bootstrap';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion as MotionDiv } from 'framer-motion';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const Services = () => {
-  const iconStyle = { width: "20px", height: "20px", color: "#0d6efd" };
-  const smallIconStyle = { width: "18px", height: "18px", color: "green", marginRight: "10px" };
-  const processIconStyle = { width: "30px", height: "30px", color: "#0d6efd" };
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedService, setSelectedService] = useState(null);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [bookingData, setBookingData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    preferred_date: '',
+    preferred_time: '',
+    notes: ''
+  });
 
-  const services = [
-    {
-      id: 'plumbing',
-      title: 'Plumbing Services',
-      icon: <WrenchIcon style={iconStyle} />,
-      description: 'Comprehensive plumbing solutions for homes and businesses',
-      features: [
-        '24/7 emergency plumbing',
-        'Pipe repair & replacement',
-        'Drain cleaning',
-        'Water heater installation',
-        'Fixture installation'
-      ],
-      popular: true
-    },
-    {
-      id: 'electrical',
-      title: 'Electrical Services',
-      icon: <BoltIcon style={iconStyle} />,
-      description: 'Safe and reliable electrical work by certified professionals',
-      features: [
-        'Electrical panel upgrades',
-        'Lighting installation',
-        'Outlet & switch repair',
-        'Whole-home rewiring',
-        'Generator installation'
-      ],
-      popular: false
-    },
-    {
-      id: 'hvac',
-      title: 'HVAC Services',
-      icon: <FireIcon style={iconStyle} />,
-      description: 'Heating, ventilation and air conditioning solutions',
-      features: [
-        'AC installation & repair',
-        'Furnace maintenance',
-        'Duct cleaning',
-        'Thermostat installation',
-        'Indoor air quality'
-      ],
-      popular: true
-    },
-    {
-      id: 'handyman',
-      title: 'Handyman Services',
-      icon: <SunIcon style={iconStyle} />,
-      description: 'All-around home maintenance and repairs',
-      features: [
-        'Drywall repair',
-        'Painting',
-        'Furniture assembly',
-        'Shelving installation',
-        'Door/window repair'
-      ],
-      popular: false
-    },
-    {
-      id: 'cleaning',
-      title: 'Professional Cleaning',
-      icon: <SparklesIcon style={iconStyle} />,
-      description: 'Deep cleaning services for residential and commercial',
-      features: [
-        'Move-in/move-out cleaning',
-        'Carpet cleaning',
-        'Window washing',
-        'Pressure washing',
-        'Disinfection services'
-      ],
-      popular: false
-    },
-    {
-      id: 'maintenance',
-      title: 'Preventive Maintenance',
-      icon: <ShieldCheckIcon style={iconStyle} />,
-      description: 'Keep your systems running smoothly year-round',
-      features: [
-        'Seasonal HVAC checkups',
-        'Plumbing inspections',
-        'Electrical safety checks',
-        'Gutter cleaning',
-        'Appliance maintenance'
-      ],
-      popular: true
-    }
-  ];
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const servicePackages = [
-    {
-      name: "Basic",
-      price: "$99",
-      period: "per service",
-      features: [
-        "Standard service call",
-        "1-hour minimum",
-        "Diagnostic included",
-        "Parts not included",
-        "Weekday service only"
-      ],
-      recommended: false
-    },
-    {
-      name: "Premium",
-      price: "$249",
-      period: "per month",
-      features: [
-        "Priority scheduling",
-        "2 service calls/month",
-        "15% discount on parts",
-        "Emergency service",
-        "24/7 availability"
-      ],
-      recommended: true
-    },
-    {
-      name: "Elite",
-      price: "$499",
-      period: "per month",
-      features: [
-        "Unlimited service calls",
-        "25% discount on parts",
-        "Dedicated technician",
-        "Annual system review",
-        "Full home inspection"
-      ],
-      recommended: false
+  useEffect(() => {
+    fetchServices();
+    
+    // Check if a specific service is selected from URL params
+    const urlParams = new URLSearchParams(location.search);
+    const serviceId = urlParams.get('service');
+    if (serviceId) {
+      fetchServiceDetails(serviceId);
     }
-  ];
+  }, [location]);
+
+  const fetchServices = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php`);
+      if (response.data.success) {
+        setServices(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      toast.error('Failed to load services');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchServiceDetails = async (serviceId) => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceId}`);
+      if (response.data.success) {
+        setSelectedService(response.data.data);
+        setShowServiceModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching service details:', error);
+      toast.error('Failed to load service details');
+    }
+  };
+
+  const handleLearnMore = (service) => {
+    setSelectedService(service);
+    setShowServiceModal(true);
+  };
+
+  const handleBookService = (service) => {
+    setSelectedService(service);
+    setShowBookingModal(true);
+  };
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/backend/api/user/request_service.php`, {
+        service_id: selectedService.id,
+        ...bookingData
+      });
+      
+      if (response.data.success) {
+        toast.success('Service request submitted successfully!');
+        setShowBookingModal(false);
+        setBookingData({
+          name: '',
+          email: '',
+          phone: '',
+          address: '',
+          preferred_date: '',
+          preferred_time: '',
+          notes: ''
+        });
+      } else {
+        toast.error(response.data.message || 'Failed to submit service request');
+      }
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      toast.error('Failed to submit service request');
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setBookingData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const getFilteredServices = () => {
+    if (activeTab === 'all') return services;
+    
+    return services.map(category => ({
+      ...category,
+      services: category.services.filter(service => {
+        if (activeTab === 'popular') {
+          return service.base_price < 100; // Consider lower priced services as popular
+        }
+        if (activeTab === 'emergency') {
+          return service.name.toLowerCase().includes('emergency') || 
+                 service.name.toLowerCase().includes('urgent') ||
+                 service.description?.toLowerCase().includes('24/7');
+        }
+        return true;
+      })
+    })).filter(category => category.services.length > 0);
+  };
+
+  if (loading) {
+    return (
+      <Container className="py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-3">Loading services...</p>
+      </Container>
+    );
+  }
 
   return (
     <MotionDiv.div
@@ -157,14 +152,18 @@ const Services = () => {
         {/* Hero Section */}
         <Row className="align-items-center mb-5">
           <Col lg={6}>
-            <Badge bg="primary" className="mb-3">Quality Services Since 203</Badge>
+            <Badge bg="primary" className="mb-3">Quality Services Since 2023</Badge>
             <h1 className="display-5 fw-bold mb-4">Professional Services for Your Home & Business</h1>
             <p className="lead mb-4">
               We deliver exceptional service with certified professionals, transparent pricing, 
-              and a 30% satisfaction guarantee.
+              and a 100% satisfaction guarantee.
             </p>
-            <Button variant="primary" size="lg" className="me-3">Book a Service</Button>
-            <Button variant="outline-primary" size="lg">Request Estimate</Button>
+            <Button variant="primary" size="lg" className="me-3" onClick={() => window.scrollTo({ top: 600, behavior: 'smooth' })}>
+              Browse Services
+            </Button>
+            <Button variant="outline-primary" size="lg" onClick={() => navigate('/contact')}>
+              Request Estimate
+            </Button>
           </Col>
           <Col lg={6}>
             <img 
@@ -179,172 +178,247 @@ const Services = () => {
         <div className="mb-5">
           <h2 className="text-center mb-4">Our Services</h2>
           <p className="text-center text-muted mb-5">
-            Comprehensive solutions for all your home service needs
+            Comprehensive solutions for all your service needs
           </p>
           
           <Tabs
-              defaultActiveKey="all"
-              id="services-tabs"
-              className="mb-4 justify-content-center"
-              fill
-            >
-                <Tab
-                  eventKey="all"
-                  title={<span style={{ color: "black" }}>All Services</span>}
-                />
-                <Tab
-                  eventKey="popular"
-                  title={<span style={{ color: "black" }}>Most Popular</span>}
-                />
-                <Tab
-                  eventKey="emergency"
-                  title={<span style={{ color: "black" }}>Emergency Services</span>}
-                />
-            </Tabs>
-          <Row className="g-4">
-            {services.map((service, index) => (
-              <Col key={index} md={6} lg={4}>
-                <MotionDiv.div
-                  whileHover={{ y: -5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className="h-30 border-0 shadow-sm">
-                    <Card.Body className="p-4">
-                      <div className="d-flex justify-content-between align-items-start mb-3">
-                        <div className="bg-light rounded-circle p-3">
-                          {service.icon}
-                        </div>
-                        {service.popular && (
-                          <Badge bg="warning" text="dark">Popular</Badge>
-                        )}
-                      </div>
-                      <h4 className="mb-3">{service.title}</h4>
-                      <p className="text-muted mb-4">{service.description}</p>
-                      <ListGroup variant="flush" className="mb-4">
-                        {service.features.map((feature, i) => (
-                          <ListGroup.Item key={i} className="border-0 px-0 py-1">
-                            <div className="d-flex align-items-center">
-                              <CheckCircleIcon style={smallIconStyle} />
-                              <span>{feature}</span>
-                            </div>
-                          </ListGroup.Item>
-                        ))}
-                      </ListGroup>
-                      <Button variant="outline-primary" className="w-30">Learn More</Button>
-                    </Card.Body>
-                  </Card>
-                </MotionDiv.div>
-              </Col>
-            ))}
-          </Row>
-        </div>
+            activeKey={activeTab}
+            onSelect={(k) => setActiveTab(k)}
+            id="services-tabs"
+            className="mb-4 justify-content-center"
+            fill
+          >
+            <Tab eventKey="all" title={<span style={{ color: "black" }}>All Services</span>} />
+            <Tab eventKey="popular" title={<span style={{ color: "black" }}>Most Popular</span>} />
+            <Tab eventKey="emergency" title={<span style={{ color: "black" }}>Emergency Services</span>} />
+          </Tabs>
 
-        {/* Service Process */}
-        <Row className="py-5 my-5 bg-light rounded-3">
-          <Col lg={12} className="text-center mb-5">
-            <h2>Our Simple Service Process</h2>
-            <p className="text-muted">How we deliver exceptional service every time</p>
-          </Col>
-          {[
-            {
-              title: "Schedule Your Service",
-              description: "Book online or call us to schedule a convenient time",
-              icon: <ClipboardDocumentCheckIcon style={processIconStyle} />
-            },
-            {
-              title: "Expert Technician Arrives",
-              description: "Our certified professional will arrive on time",
-              icon: <WrenchIcon style={processIconStyle} />
-            },
-            {
-              title: "Diagnosis & Estimate",
-              description: "We assess the issue and provide transparent pricing",
-              icon: <ShieldCheckIcon style={processIconStyle} />
-            },
-            {
-              title: "Service Completed",
-              description: "We complete the job to your satisfaction",
-              icon: <CheckCircleIcon style={processIconStyle} />
-            }
-          ].map((step, index) => (
-            <Col key={index} md={6} lg={3}>
-              <div className="text-center p-3">
-                <div className="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style={{ width: '50px', height: '50px' }}>
-                  {step.icon}
-                </div>
-                <h5 className="mb-2">{step.title}</h5>
-                <p className="text-muted mb-0">{step.description}</p>
-              </div>
-            </Col>
+          {/* Dynamic Services Display */}
+          {getFilteredServices().map((category) => (
+            <div key={category.id} className="mb-5">
+              <h3 className="mb-4 text-primary">
+                {category.icon && <i className={`${category.icon} me-2`}></i>}
+                {category.name}
+              </h3>
+              <p className="text-muted mb-4">{category.description}</p>
+              
+              <Row>
+                {category.services.map((service) => (
+                  <Col lg={4} md={6} className="mb-4" key={service.id}>
+                    <MotionDiv.div
+                      whileHover={{ y: -5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Card className="h-100 shadow-sm border-0">
+                        <Card.Body className="d-flex flex-column">
+                          <div className="d-flex justify-content-between align-items-start mb-3">
+                            <Card.Title className="h5">{service.name}</Card.Title>
+                            <Badge bg="primary" className="ms-2">
+                              ${service.base_price}/{service.unit}
+                            </Badge>
+                          </div>
+                          
+                          <Card.Text className="text-muted flex-grow-1">
+                            {service.description || 'Professional service with quality guarantee'}
+                          </Card.Text>
+                          
+                          <div className="d-grid gap-2">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm"
+                              onClick={() => handleLearnMore(service)}
+                            >
+                              Learn More
+                            </Button>
+                            <Button 
+                              variant="primary" 
+                              size="sm"
+                              onClick={() => handleBookService(service)}
+                            >
+                              Book Service
+                            </Button>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </MotionDiv.div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
           ))}
-        </Row>
 
-        {/* Pricing Section */}
-        <div className="py-5">
-          <h2 className="text-center mb-4">Service Packages</h2>
-          <p className="text-center text-muted mb-5">
-            Choose the plan that fits your needs
-          </p>
-          
-          <Row className="g-4">
-            {servicePackages.map((pkg, index) => (
-              <Col key={index} md={6} lg={4}>
-                <MotionDiv.div
-                  whileHover={{ scale: pkg.recommended ? 1.03 : 1.01 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className={`h-30 border-0 shadow-sm ${pkg.recommended ? 'border-primary border-2' : ''}`}>
-                    {pkg.recommended && (
-                      <div className="bg-primary text-white text-center py-2">
-                        <strong>Recommended</strong>
-                      </div>
-                    )}
-                    <Card.Body className="p-4 text-center">
-                      <h4 className="mb-3">{pkg.name}</h4>
-                      <h2 className="mb-1">{pkg.price}</h2>
-                      <p className="text-muted mb-4">{pkg.period}</p>
-                      <ListGroup variant="flush" className="mb-4 text-start">
-                        {pkg.features.map((feature, i) => (
-                          <ListGroup.Item key={i} className="border-0 px-0 py-2">
-                            <div className="d-flex align-items-center">
-                              <CheckCircleIcon style={smallIconStyle} />
-                              <span>{feature}</span>
-                            </div>
-                          </ListGroup.Item>
-                        ))}
-                      </ListGroup>
-                      <Button 
-                        variant={pkg.recommended ? "primary" : "outline-primary"} 
-                        className="w-30"
-                      >
-                        Get Started
-                      </Button>
-                    </Card.Body>
-                  </Card>
-                </MotionDiv.div>
-              </Col>
-            ))}
-          </Row>
+          {getFilteredServices().length === 0 && (
+            <div className="text-center py-5">
+              <h4>No services found</h4>
+              <p className="text-muted">Try selecting a different category or check back later.</p>
+            </div>
+          )}
         </div>
+      </Container>
 
-        {/* Call to Action */}
-        <Card className="bg-primary text-white shadow border-0 mt-5">
-          <Card.Body className="p-5">
-            <Row className="align-items-center">
-              <Col lg={8}>
-                <h2 className="mb-3">Ready to Experience Exceptional Service?</h2>
-                <p className="mb-0 lead">
-                  Contact us today for a free estimate or to schedule your service appointment.
-                </p>
+      {/* Service Details Modal */}
+      <Modal show={showServiceModal} onHide={() => setShowServiceModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>{selectedService?.name}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedService && (
+            <>
+              <div className="mb-3">
+                <strong>Category:</strong> {selectedService.category_name}
+              </div>
+              <div className="mb-3">
+                <strong>Price:</strong> ${selectedService.base_price}/{selectedService.unit}
+              </div>
+              <div className="mb-3">
+                <strong>Description:</strong>
+                <p className="mt-2">{selectedService.description || 'Professional service with quality guarantee and certified technicians.'}</p>
+              </div>
+              <div className="mb-3">
+                <strong>What's Included:</strong>
+                <ul className="mt-2">
+                  <li>Professional assessment</li>
+                  <li>Quality materials and tools</li>
+                  <li>Certified technician</li>
+                  <li>Satisfaction guarantee</li>
+                  <li>Follow-up support</li>
+                </ul>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowServiceModal(false)}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={() => {
+            setShowServiceModal(false);
+            handleBookService(selectedService);
+          }}>
+            Book This Service
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Booking Modal */}
+      <Modal show={showBookingModal} onHide={() => setShowBookingModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Book Service: {selectedService?.name}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleBookingSubmit}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Full Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="name"
+                    value={bookingData.name}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
               </Col>
-              <Col lg={4} className="text-lg-end mt-3 mt-lg-0">
-                <Button variant="light" size="lg" className="me-2">Call Now</Button>
-                <Button variant="outline-light" size="lg">Email Us</Button>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Email *</Form.Label>
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    value={bookingData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
               </Col>
             </Row>
-          </Card.Body>
-        </Card>
-      </Container>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Phone Number *</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    name="phone"
+                    value={bookingData.phone}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Preferred Date *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="preferred_date"
+                    value={bookingData.preferred_date}
+                    onChange={handleInputChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Preferred Time</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="preferred_time"
+                    value={bookingData.preferred_time}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Service Address *</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={2}
+                name="address"
+                value={bookingData.address}
+                onChange={handleInputChange}
+                placeholder="Enter your complete address"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Additional Notes</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="notes"
+                value={bookingData.notes}
+                onChange={handleInputChange}
+                placeholder="Any specific requirements or additional information"
+              />
+            </Form.Group>
+
+            {selectedService && (
+              <div className="bg-light p-3 rounded">
+                <h6>Service Summary:</h6>
+                <p className="mb-1"><strong>{selectedService.name}</strong></p>
+                <p className="mb-0 text-muted">Starting from ${selectedService.base_price}/{selectedService.unit}</p>
+              </div>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowBookingModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              Submit Request
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </MotionDiv.div>
   );
 };
