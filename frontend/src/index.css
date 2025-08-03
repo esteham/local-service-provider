@@ -215,3 +215,7 @@ input:focus, textarea:focus, select:focus {
 .dashboard-main-content{
   margin-top: 50px;
 }
+
+.search-result-item:hover {
+  background-color: #86b1da;
+}

@@ -1,7 +1,7 @@
 <?php
-require_once '../config/init.php';
+require_once '../../config/init.php';
 
-require_once '../../classes/class_admin.php';
+require_once '../../../classes/class_functions.php';
 $admin = new Admin();
 
 $pdo = $admin->getPDO();

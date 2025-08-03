@@ -1,11 +1,11 @@
 <?php
-require_once '../config/init.php';
-require_once '../../classes/class_admin.php';
+require_once '../../config/init.php';
+require_once '../../../classes/class_functions.php';
 
 $admin = new Admin();
 $pdo = $admin->getPDO();
 
-if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['role'], ['admin', 'hr'])) {
+if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['role'], ['admin', 'agent'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized Access']);
     exit;
 }
