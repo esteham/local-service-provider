@@ -39,7 +39,7 @@ A full-stack web application where users can request nearby service providers (e
 ---
 
 ## 📁 Project Structure
-
+```bash
 hyperlocal-service-network/
 ├── backend/
 │ ├── api/ # All RESTful PHP endpoints
@@ -127,4 +127,5 @@ This project is licensed under the MIT License.
 👨‍💻 Author
 
 Developed by Esteham H. Zihad Ansari
+
 For any queries, email: spider@xetroot.com
