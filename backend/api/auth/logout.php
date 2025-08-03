@@ -20,5 +20,3 @@ echo json_encode([
 		'success' => true,
 		'message' => 'Logout successfull'	
 ]);
-
-?>
