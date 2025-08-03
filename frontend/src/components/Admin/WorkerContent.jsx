@@ -13,7 +13,7 @@ import {
 } from "react-bootstrap";
 import { PersonPlusFill } from "react-bootstrap-icons";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const WorkerContent = ({ setShowWorkerModal }) => {
   const [categories, setCategories] = useState([]);

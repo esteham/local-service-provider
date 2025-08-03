@@ -7,6 +7,7 @@ import axios from 'axios';
 import { motion as MotionDiv } from 'framer-motion';
 
 const Contact = () => {
+  const BASE_URL = import.meta.env.VITE_API_URL;
   const formik = useFormik({
     initialValues: {
       name: '',
@@ -24,11 +25,17 @@ const Contact = () => {
     }),
     onSubmit: async (values, { setSubmitting, resetForm }) => {
       try {
-        await axios.post('/api/contact', values);
-        alert('Thank you for your message! We will get back to you soon.');
-        resetForm();
+        const response = await axios.post(`${BASE_URL}backend/api/contact.php`, values);
+        if (response.data.success) {
+          alert('Thank you for your message! We will get back to you soon.');
+          resetForm();
+        } else {
+          alert(response.data.message || 'There was an error submitting your message.');
+        }
       } catch (error) {
-        alert('There was an error submitting your message. Please try again later.' + error);
+        console.error('Contact form error:', error);
+        const errorMessage = error.response?.data?.message || 'There was an error submitting your message. Please try again later.';
+        alert(errorMessage);
       } finally {
         setSubmitting(false);
       }

@@ -246,6 +246,22 @@ CREATE TABLE IF NOT EXISTS system_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Contact Messages Table
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    phone VARCHAR(20),
+    service VARCHAR(100),
+    message TEXT NOT NULL,
+    status ENUM('new', 'read', 'replied', 'closed') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at),
+    INDEX idx_email (email)
+);
+
 -- Insert default data
 INSERT IGNORE INTO categories (name, description, icon) VALUES 
 ('Electrical', 'Electrical repair and installation services', 'fas fa-bolt'),
