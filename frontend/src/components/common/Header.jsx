@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 import "../../assets/css/header.css";
 
-const Header = () => {
+const Header = ({ onLoginClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
@@ -19,7 +19,9 @@ const Header = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/backend/api/services.php`
+      );
       if (response.data.success) {
         setServices(response.data.data);
       }
@@ -111,9 +113,13 @@ const Header = () => {
           <Nav className="ms-auto gap-2 align-items-center">
             {!isLoggedIn ? (
               <>
-                <Link to="/LoginFetch">
-                  <Button variant="outline-light" size="sm">Login</Button>
-                </Link>
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  onClick={onLoginClick}
+                >
+                  Login
+                </Button>
                 <Link to="/register">
                   <Button variant="light" size="sm">Register</Button>
                 </Link>

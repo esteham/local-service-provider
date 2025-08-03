@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -9,27 +9,23 @@ import Home from "./components/common/Home/Home";
 import Header from "./components/common/Header";
 import About from "./components/common/About";
 import Contact from "./components/common/Contact";
-import Services from "./components/common/Services"
+import Services from "./components/common/Services";
 import Footer from "./components/common/Footer";
-import LoginFetch from "./components/Auth/LoginFetch";
+import LoginFetch from "./components/Auth/LoginFetch"; // 👉 this is modal component
 import AgentDashboard from "./components/Agents/AgentDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import WorkerDashboard from "./components/Workers/WorkerDashboard";
 
-// ProtectedRoute Component with loading check
+// ProtectedRoute Component
 const ProtectedRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <p>Loading...</p>
-      </div>
-    );
+    return <div className="text-center mt-5"><p>Loading...</p></div>;
   }
 
   if (!user) {
-    return <Navigate to="/LoginFetch" replace />;
+    return <Navigate to="/" replace />; // 🔁 redirect to home if not logged in
   }
 
   if (roles && !roles.includes(user.role)) {
@@ -39,7 +35,6 @@ const ProtectedRoute = ({ children, roles }) => {
   return children;
 };
 
-// Role-based dynamic redirect
 const RoleDashboard = () => {
   const { user } = useAuth();
 
@@ -57,6 +52,8 @@ const RoleDashboard = () => {
 
 function App() {
   const location = useLocation();
+  const [showLogin, LoginFetchModal] = useState(false); // 🔐 control modal visibility
+
   const hiddenFooterRoutes = [
     "/AdminDashboard",
     "/AgentDashboard",
@@ -73,15 +70,13 @@ function App() {
 
   return (
     <AuthProvider>
-      {shouldShowHeader && < Header /> }
+      {shouldShowHeader && <Header onLoginClick={() => LoginFetchModal(true)} />}
 
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home onLoginClick={() => LoginFetchModal(true)} />} />
         <Route path="/About" element={<About />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Services" element={<Services />} />
-        <Route path="/LoginFetch" element={<LoginFetch />} />
 
         {/* Protected Routes */}
         <Route
@@ -92,7 +87,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/AdminDashboard"
           element={
@@ -101,7 +95,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/WorkerDashboard"
           element={
@@ -110,9 +103,8 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <RoleDashboard />
@@ -120,10 +112,11 @@ function App() {
           }
         />
       </Routes>
+      <LoginFetch show={showLogin} onHide={() => LoginFetchModal(false)} />
+
       {shouldShowFooter && <Footer />}
     </AuthProvider>
   );
 }
-
 
 export default App;

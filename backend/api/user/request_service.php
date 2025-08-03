@@ -1,5 +1,4 @@
 <?php
-
 require_once '../config/init.php';
 require_once '../../classes/Auth.php';
 require_once '../../classes/Pricing.php';

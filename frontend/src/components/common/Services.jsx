@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion as MotionDiv } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import LoginFetchModal from '../Auth/LoginFetch';
 
 const Services = () => {
   const [services, setServices] = useState([]);
@@ -11,6 +12,8 @@ const Services = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showLoginPromptModal, setShowLoginPromptModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [bookingData, setBookingData] = useState({
     name: '',
@@ -27,14 +30,16 @@ const Services = () => {
 
   useEffect(() => {
     fetchServices();
-    
-    // Check if a specific service is selected from URL params
     const urlParams = new URLSearchParams(location.search);
     const serviceId = urlParams.get('service');
     if (serviceId) {
       fetchServiceDetails(serviceId);
     }
   }, [location]);
+
+  const isUserLoggedIn = () => {
+    return !!localStorage.getItem('user_id');
+  };
 
   const fetchServices = async () => {
     try {
@@ -69,30 +74,27 @@ const Services = () => {
   };
 
   const handleBookService = (service) => {
+    if (!isUserLoggedIn()) {
+      setShowLoginPromptModal(true);
+      return;
+    }
     setSelectedService(service);
     setShowBookingModal(true);
   };
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/backend/api/user/request_service.php`, {
         service_id: selectedService.id,
         ...bookingData
       });
-      
       if (response.data.success) {
         toast.success('Service request submitted successfully!');
         setShowBookingModal(false);
         setBookingData({
-          name: '',
-          email: '',
-          phone: '',
-          address: '',
-          preferred_date: '',
-          preferred_time: '',
-          notes: ''
+          name: '', email: '', phone: '', address: '',
+          preferred_date: '', preferred_time: '', notes: ''
         });
       } else {
         toast.error(response.data.message || 'Failed to submit service request');
@@ -105,23 +107,17 @@ const Services = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBookingData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setBookingData(prev => ({ ...prev, [name]: value }));
   };
 
   const getFilteredServices = () => {
     if (activeTab === 'all') return services;
-    
     return services.map(category => ({
       ...category,
       services: category.services.filter(service => {
-        if (activeTab === 'popular') {
-          return service.base_price < 100; // Consider lower priced services as popular
-        }
+        if (activeTab === 'popular') return service.base_price < 100;
         if (activeTab === 'emergency') {
-          return service.name.toLowerCase().includes('emergency') || 
+          return service.name.toLowerCase().includes('emergency') ||
                  service.name.toLowerCase().includes('urgent') ||
                  service.description?.toLowerCase().includes('24/7');
         }
@@ -149,6 +145,7 @@ const Services = () => {
       transition={{ duration: 0.5 }}
     >
       <Container className="py-5">
+        <Container className="py-5">
         {/* Hero Section */}
         <Row className="align-items-center mb-5">
           <Col lg={6}>
@@ -419,6 +416,36 @@ const Services = () => {
           </Modal.Footer>
         </Form>
       </Modal>
+      </Container>
+
+      {/* Login Prompt Modal */}
+      <Modal show={showLoginPromptModal} onHide={() => setShowLoginPromptModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Login Required</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Please login first to book this service.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLoginPromptModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowLoginPromptModal(false);
+              setShowLoginModal(true);   
+            }}
+          >
+            Login Now
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* login modal*/}
+      <LoginFetchModal
+        show={showLoginModal}
+        onHide={() => setShowLoginModal(false)}
+      />
     </MotionDiv.div>
   );
 };
