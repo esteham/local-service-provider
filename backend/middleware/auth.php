@@ -7,7 +7,7 @@ function isAuthenticated() {
         session_start();
     }
     
-    return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    return isset($_SESSION['user']['id']) && !empty($_SESSION['user']['id']);
 }
 
 function getCurrentUser() {
@@ -22,7 +22,7 @@ function getCurrentUser() {
     try {
         $pdo = getDBConnection();
         $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, role, status FROM users WHERE id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
+        $stmt->execute([$_SESSION['user']['id']]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log("Get current user error: " . $e->getMessage());
@@ -31,18 +31,28 @@ function getCurrentUser() {
 }
 
 function isAdmin() {
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Check if user is logged in and has admin role in session
+    if (isset($_SESSION['user']['role']) && $_SESSION['user']['role'] === 'admin') {
+        return true;
+    }
+    
+    // Fallback: check database
     $user = getCurrentUser();
     return $user && $user['role'] === 'admin';
-}
-
-function isAgent() {
-    $user = getCurrentUser();
-    return $user && $user['role'] === 'agent';
 }
 
 function isWorker() {
     $user = getCurrentUser();
     return $user && $user['role'] === 'worker';
+}
+
+function isAgent() {
+    $user = getCurrentUser();
+    return $user && $user['role'] === 'agent';
 }
 
 function hasRole($role) {
@@ -74,5 +84,10 @@ function requireRole($role) {
         echo json_encode(['success' => false, 'message' => ucfirst($role) . ' access required']);
         exit;
     }
+}
+
+function getDBConnection() {
+    require_once __DIR__ . '/../config/database.php';
+    return DatabaseConfig::getConnection();
 }
 ?>

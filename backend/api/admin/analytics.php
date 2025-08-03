@@ -2,6 +2,7 @@
 require_once '../config/init.php';
 require_once '../../config/database.php';
 require_once '../../middleware/auth.php';
+require_once '../../classes/class_functions.php'
 
 // Check if user is authenticated and is admin
 if (!isAuthenticated() || !isAdmin()) {

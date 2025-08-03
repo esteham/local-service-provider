@@ -1,7 +1,18 @@
 <?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: http://localhost:5173');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
 require_once '../config/init.php';
 require_once '../../config/database.php';
 require_once '../../middleware/auth.php';
+require_once '../../classes/class_functions.php';
 
 // Check if user is authenticated and is admin
 if (!isAuthenticated() || !isAdmin()) {
@@ -62,7 +73,7 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to fetch statistics'
+        'message' => 'Internal server error'
     ]);
 }
 ?>
