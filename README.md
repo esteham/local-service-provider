@@ -60,7 +60,7 @@ hyperlocal-service-network/
 ├── database/
 │ └── schema.sql # All MySQL tables
 
-
+```
 ---
 
 ## ⚙️ Setup Instructions
