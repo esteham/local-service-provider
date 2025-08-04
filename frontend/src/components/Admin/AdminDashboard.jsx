@@ -39,6 +39,7 @@ import EditDivisionModal from "../../pages/Division/EditDivisionModal";
 import UserModal from "./modals/UserModal";
 import DivisionContent from "./pages/DivisionContent";
 import LocationContent from "./pages/LocationContent";
+import ErrorBoundary from "../common/ErrorBoundary";
 import FinanceContent from "./pages/FinanceContent";
 import MessagesContent from "./pages/MessagesContent";
 import NotificationsContent from "./pages/NotificationsContent";
@@ -1211,7 +1212,11 @@ const ModernAdminDashboard = () => {
       case "divisions":
         return <DivisionContent />;
       case "locations":
-        return <LocationContent />;
+        return (
+          <ErrorBoundary>
+            <LocationContent />
+          </ErrorBoundary>
+        );
       case "analytics":
         return (
           <div className="placeholder-content">

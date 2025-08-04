@@ -9,7 +9,8 @@ import {
   FaTrash,
   FaPlus,
   FaSearch,
-  FaTimes
+  FaTimes,
+  FaLocationArrow
 } from 'react-icons/fa';
 import axios from 'axios';
 import useLiveValidation from '../../../hooks/useLiveValidation';
@@ -251,25 +252,28 @@ const LocationContent = () => {
     console.log(`Items length: ${items.length}`);
     if (!searchTerm) return items;
     
-    return items.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.division_name && item.division_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.district_name && item.district_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.upazila_name && item.upazila_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.zone_name && item.zone_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    return items.filter(item => {
+      if (!item || !item.name) return false;
+      return (
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.division_name && item.division_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.district_name && item.district_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.upazila_name && item.upazila_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.zone_name && item.zone_name.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    });
   };
 
   const getParentOptions = () => {
     switch (activeTab) {
       case 'districts':
-        return locations.divisions.map(div => ({ id: div.id, name: div.name }));
+        return (locations.divisions || []).map(div => ({ id: div.id, name: div.name }));
       case 'upazilas':
-        return locations.districts.map(dist => ({ id: dist.id, name: dist.name }));
+        return (locations.districts || []).map(dist => ({ id: dist.id, name: dist.name }));
       case 'zones':
-        return locations.upazilas.map(upazila => ({ id: upazila.id, name: upazila.name }));
+        return (locations.upazilas || []).map(upazila => ({ id: upazila.id, name: upazila.name }));
       case 'areas':
-        return locations.zones.map(zone => ({ id: zone.id, name: zone.name }));
+        return (locations.zones || []).map(zone => ({ id: zone.id, name: zone.name }));
       default:
         return [];
     }
@@ -296,6 +300,10 @@ const LocationContent = () => {
   };
 
   const renderLocationCard = (item) => {
+    if (!item || !item.id || !item.name) {
+      return null;
+    }
+    
     const currentType = locationTypes.find(type => type.id === activeTab);
     const IconComponent = currentType?.icon || FaBuilding;
 
