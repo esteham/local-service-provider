@@ -20,8 +20,9 @@ function getCurrentUser() {
     }
     
     try {
-        $pdo = getDBConnection();
-        $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, role, status FROM users WHERE id = ?");
+        require_once __DIR__ . '/../config/database.php';
+        $pdo = DatabaseConfig::getConnection();
+        $stmt = $pdo->prepare("SELECT id, username, email, role, status FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user']['id']]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {

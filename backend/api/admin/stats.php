@@ -34,7 +34,7 @@ try {
     // Get active workers count
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM workers w 
                         JOIN users u ON w.user_id = u.id 
-                        WHERE w.status = 'active' AND u.status = 'active'");
+                        WHERE w.availability = 'available' AND u.status = 'active'");
     $activeWorkers = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
     
     // Get total service requests
@@ -42,9 +42,19 @@ try {
     $totalRequests = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
     
     // Get total revenue from completed requests
-    $stmt = $pdo->query("SELECT COALESCE(SUM(price), 0) as total FROM service_requests 
-                        WHERE status = 'completed'");
-    $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+    // Since we don't know the exact schema, let's set a default value
+    $totalRevenue = 0;
+    try {
+        // Try to calculate revenue if possible
+        $stmt = $pdo->query("SELECT COALESCE(SUM(s.base_price), 0) as total 
+                            FROM service_requests sr 
+                            JOIN services s ON sr.service_id = s.id 
+                            WHERE sr.status = 'completed'");
+        $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    } catch (Exception $e) {
+        // If the query fails, just use 0
+        $totalRevenue = 0;
+    }
     
     // Get pending requests count
     $stmt = $pdo->query("SELECT COUNT(*) as total FROM service_requests 

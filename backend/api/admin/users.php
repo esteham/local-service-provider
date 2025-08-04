@@ -30,9 +30,7 @@ try {
     switch ($method) {
         case 'GET':
             // Get all users
-            $stmt = $pdo->query("SELECT id, first_name, last_name, 
-                                CONCAT(first_name, ' ', last_name) as name,
-                                email, role, status, created_at 
+            $stmt = $pdo->query("SELECT id, username, email, role, status, created_at 
                                 FROM users 
                                 ORDER BY created_at DESC");
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
