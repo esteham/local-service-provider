@@ -51,25 +51,36 @@ try
 
     $pdo->beginTransaction();
 
-    // Worker Insert
-    $stmt = $pdo->prepare("INSERT INTO 
-        workers (first_name, last_name, phone, category_id, zone_id, area_id, address, skills, emergency_name, emergency_phone, emergency_relation, join_date, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), 'active')");
-    $stmt->execute([
-        $first_name,
-        $last_name,
-        $phone,
-        $category_id,
-        $zone_id,
-        $area_id,
-        $address,
-        $skill,
-        $emergency_name,
-        $emergency_phone,
-        $emergency_relation
-    ]);
+// Step 1: Insert into users first
+$rawPassword = bin2hex(random_bytes(4)); 
+$hashPassword = password_hash($rawPassword, PASSWORD_DEFAULT);
 
-    $workerID = $pdo->lastInsertId(); 
+$userInsert = $pdo->prepare("INSERT INTO users (username, email, password, role, status)
+                             VALUES (?, ?, ?, 'worker', 'active')");
+$userInsert->execute([$username, $email, $hashPassword]);
+$userId = $pdo->lastInsertId(); // we need this for worker.user_id
+
+// Step 2: Insert into workers table using the userId
+$stmt = $pdo->prepare("INSERT INTO 
+    workers (user_id, first_name, last_name, phone, category_id, zone_id, area_id, address, skills, emergency_name, emergency_phone, emergency_relation, join_date, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), 'active')");
+$stmt->execute([
+    $userId,
+    $first_name,
+    $last_name,
+    $phone,
+    $category_id,
+    $zone_id,
+    $area_id,
+    $address,
+    $skill,
+    $emergency_name,
+    $emergency_phone,
+    $emergency_relation
+]);
+
+$workerID = $pdo->lastInsertId();
+
 
     // Upload Files
     $uploadDir = '../../assets/uploads/documents/';
@@ -93,14 +104,6 @@ try
             }
         }
     }
-
-    // User Insert with auto password
-    $rawPassword = bin2hex(random_bytes(4)); 
-    $hashPassword = password_hash($rawPassword, PASSWORD_DEFAULT);
-
-    $userInsert = $pdo->prepare("INSERT INTO users (username, email, password, role, worker_id, status)
-                                 VALUES (?, ?, ?, 'worker', ?, 'active')");
-    $userInsert->execute([$username, $email, $hashPassword, $workerID]);
 
     $pdo->commit();
 

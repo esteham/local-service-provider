@@ -3,6 +3,9 @@ import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { FaArrowLeft, FaHammer, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import useLiveValidation from '../../hooks/useLiveValidation';
+import ValidationMessage from '../common/ValidationMessage';
+import { showFormSuccessToast, showErrorToast } from '../../utils/confirmationToast';
 
 const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const [formData, setFormData] = useState({
@@ -39,23 +42,28 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const [services, setServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
 
+  // Live validation hooks
+  const usernameValidation = useLiveValidation('users', 'username');
+  const emailValidation = useLiveValidation('users', 'email');
+  const phoneValidation = useLiveValidation('users', 'phone');
+
   useEffect(() => {
     fetchDropdownData();
   }, []);
 
   const fetchDropdownData = async () => {
     try {
-      // Fetch categories
+      // Fetch categories using public API
       const categoriesResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/categories/index.php`
+        `${import.meta.env.VITE_API_URL}/backend/api/categories.php`
       );
       if (categoriesResponse.data.success) {
         setCategories(categoriesResponse.data.data);
       }
 
-      // Fetch zones
+      // Fetch zones using public location API
       const zonesResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/zones/index.php`
+        `${import.meta.env.VITE_API_URL}/backend/api/locations.php?type=zones`
       );
       if (zonesResponse.data.success) {
         setZones(zonesResponse.data.data);
@@ -76,10 +84,12 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const fetchAreas = async (zoneId) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/area/index.php?zone_id=${zoneId}`
+        `${import.meta.env.VITE_API_URL}/backend/api/locations.php?type=areas`
       );
       if (response.data.success) {
-        setAreas(response.data.data);
+        // Filter areas by zone_id
+        const filteredAreas = response.data.data.filter(area => area.zone_id == zoneId);
+        setAreas(filteredAreas);
       }
     } catch (error) {
       console.error('Error fetching areas:', error);
@@ -92,6 +102,15 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       ...prev,
       [name]: value
     }));
+
+    // Trigger live validation for specific fields
+    if (name === 'username') {
+      usernameValidation.validate(value);
+    } else if (name === 'email') {
+      emailValidation.validate(value);
+    } else if (name === 'phone') {
+      phoneValidation.validate(value);
+    }
 
     // Fetch areas when zone changes
     if (name === 'zone_id' && value) {
@@ -190,7 +209,30 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Check basic form validation
     if (!validateForm()) {
+      return;
+    }
+
+    // Check live validation results
+    if (usernameValidation.exists) {
+      showErrorToast('Username is already taken. Please choose a different username.');
+      return;
+    }
+
+    if (emailValidation.exists) {
+      showErrorToast('Email is already registered. Please use a different email.');
+      return;
+    }
+
+    if (phoneValidation.exists) {
+      showErrorToast('Phone number is already registered. Please use a different phone number.');
+      return;
+    }
+
+    // Check if validation is still in progress
+    if (usernameValidation.isChecking || emailValidation.isChecking || phoneValidation.isChecking) {
+      showErrorToast('Please wait for validation to complete.');
       return;
     }
 
@@ -225,14 +267,18 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       );
 
       if (response.data.success) {
-        toast.success('Worker registration successful! You can now login.');
+        showFormSuccessToast('worker', 'register');
+        // Reset validation states
+        usernameValidation.reset();
+        emailValidation.reset();
+        phoneValidation.reset();
         onClose();
       } else {
-        toast.error(response.data.message || 'Registration failed');
+        showErrorToast(response.data.message || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error('Registration failed. Please try again.');
+      showErrorToast('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -259,12 +305,18 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                isInvalid={!!errors.username}
+                isInvalid={!!errors.username || usernameValidation.isValid === false}
+                isValid={usernameValidation.isValid === true}
                 placeholder="Enter username"
               />
               <Form.Control.Feedback type="invalid">
                 {errors.username}
               </Form.Control.Feedback>
+              <ValidationMessage 
+                isChecking={usernameValidation.isChecking}
+                isValid={usernameValidation.isValid}
+                message={usernameValidation.message}
+              />
             </Form.Group>
           </Col>
           <Col md={6}>
@@ -275,12 +327,18 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                isInvalid={!!errors.email}
+                isInvalid={!!errors.email || emailValidation.isValid === false}
+                isValid={emailValidation.isValid === true}
                 placeholder="Enter email"
               />
               <Form.Control.Feedback type="invalid">
                 {errors.email}
               </Form.Control.Feedback>
+              <ValidationMessage 
+                isChecking={emailValidation.isChecking}
+                isValid={emailValidation.isValid}
+                message={emailValidation.message}
+              />
             </Form.Group>
           </Col>
         </Row>
@@ -329,12 +387,18 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                isInvalid={!!errors.phone}
+                isInvalid={!!errors.phone || phoneValidation.isValid === false}
+                isValid={phoneValidation.isValid === true}
                 placeholder="Enter phone number"
               />
               <Form.Control.Feedback type="invalid">
                 {errors.phone}
               </Form.Control.Feedback>
+              <ValidationMessage 
+                isChecking={phoneValidation.isChecking}
+                isValid={phoneValidation.isValid}
+                message={phoneValidation.message}
+              />
             </Form.Group>
           </Col>
           <Col md={6}>

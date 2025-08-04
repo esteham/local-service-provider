@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS documents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    worker_id INT NOT NULL,
+    doc_type VARCHAR(100) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE
+);
+
 -- Categories and services
 CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -105,7 +115,7 @@ CREATE TABLE IF NOT EXISTS workers (
     rejection_reason TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
     FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
@@ -138,10 +148,20 @@ CREATE TABLE IF NOT EXISTS worker_zones (
 CREATE TABLE IF NOT EXISTS agents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    assigned_zone_id INT,
+    phone VARCHAR(20),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    address TEXT,
+    join_date DATE,
+    zone_id INT,
+    area_id INT,
+    status ENUM('pending', 'active', 'inactive') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (assigned_zone_id) REFERENCES zones(id) ON DELETE SET NULL
+    FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE SET NULL,
+    FOREIGN KEY (area_id) REFERENCES areas(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_agent_user (user_id)
 );
 
 -- Service requests

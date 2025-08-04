@@ -109,7 +109,7 @@ const WorkerRegistrationModal = ({ show, handleClose }) => {
         }
 
         const res = await fetch(
-          `${BASE_URL}backend/api/workers/register.php`,
+          `${BASE_URL}/backend/api/workers/register.php`,
           {
             method: "POST",
             credentials: "include",
@@ -141,7 +141,7 @@ const WorkerRegistrationModal = ({ show, handleClose }) => {
       const fetchCategories = async () => {
         try {
           const res = await fetch(
-            `${BASE_URL}backend/api/categories/fetch_category.php`,
+            `${BASE_URL}/backend/api/categories/fetch_category.php`,
             {
               credentials: "include",
             }

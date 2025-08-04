@@ -38,6 +38,7 @@ import CreateDivisionModal from "../../pages/Division/CreateDivisionModal";
 import EditDivisionModal from "../../pages/Division/EditDivisionModal";
 import UserModal from "./modals/UserModal";
 import DivisionContent from "./pages/DivisionContent";
+import LocationContent from "./pages/LocationContent";
 import FinanceContent from "./pages/FinanceContent";
 import MessagesContent from "./pages/MessagesContent";
 import NotificationsContent from "./pages/NotificationsContent";
@@ -667,7 +668,7 @@ const ModernAdminDashboard = () => {
     { id: "workers", label: "Worker Management", icon: FaUserTie },
     { id: "requests", label: "Service Requests", icon: FaTasks },
     { id: "categories", label: "Categories", icon: FaClipboardList },
-    { id: "divisions", label: "Divisions", icon: FaBuilding },
+    { id: "locations", label: "Locations", icon: FaBuilding },
     { id: "analytics", label: "Analytics", icon: FaChartLine },
     { id: "finances", label: "Finances", icon: FaMoneyBillWave },
     { id: "schedule", label: "Schedule", icon: FaCalendarAlt },
@@ -1209,6 +1210,8 @@ const ModernAdminDashboard = () => {
         return <ServicesContent />;
       case "divisions":
         return <DivisionContent />;
+      case "locations":
+        return <LocationContent />;
       case "analytics":
         return (
           <div className="placeholder-content">

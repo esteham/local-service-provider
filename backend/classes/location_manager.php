@@ -86,17 +86,10 @@ class LocationManager {
     public function getAllDistricts($divisionId = null) {
         try {
             if ($divisionId) {
-                $sql = "SELECT d.*, div.name as division_name 
-                        FROM districts d 
-                        LEFT JOIN divisions div ON d.division_id = div.id 
-                        WHERE d.division_id = ? 
-                        ORDER BY d.name ASC";
+                $sql = "SELECT * FROM districts WHERE division_id = ? ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql, [$divisionId]);
             } else {
-                $sql = "SELECT d.*, div.name as division_name 
-                        FROM districts d 
-                        LEFT JOIN divisions div ON d.division_id = div.id 
-                        ORDER BY div.name ASC, d.name ASC";
+                $sql = "SELECT * FROM districts ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql);
             }
             
@@ -186,19 +179,10 @@ class LocationManager {
     public function getAllUpazilas($districtId = null) {
         try {
             if ($districtId) {
-                $sql = "SELECT u.*, d.name as district_name, div.name as division_name
-                        FROM upazilas u 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        WHERE u.district_id = ? 
-                        ORDER BY u.name ASC";
+                $sql = "SELECT * FROM upazilas WHERE district_id = ? ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql, [$districtId]);
             } else {
-                $sql = "SELECT u.*, d.name as district_name, div.name as division_name
-                        FROM upazilas u 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        ORDER BY div.name ASC, d.name ASC, u.name ASC";
+                $sql = "SELECT * FROM upazilas ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql);
             }
             
@@ -288,21 +272,10 @@ class LocationManager {
     public function getAllZones($upazilaId = null) {
         try {
             if ($upazilaId) {
-                $sql = "SELECT z.*, u.name as upazila_name, d.name as district_name, div.name as division_name
-                        FROM zones z 
-                        LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        WHERE z.upazila_id = ? 
-                        ORDER BY z.name ASC";
+                $sql = "SELECT * FROM zones WHERE upazila_id = ? ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql, [$upazilaId]);
             } else {
-                $sql = "SELECT z.*, u.name as upazila_name, d.name as district_name, div.name as division_name
-                        FROM zones z 
-                        LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        ORDER BY div.name ASC, d.name ASC, u.name ASC, z.name ASC";
+                $sql = "SELECT * FROM zones ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql);
             }
             
@@ -392,23 +365,10 @@ class LocationManager {
     public function getAllAreas($zoneId = null) {
         try {
             if ($zoneId) {
-                $sql = "SELECT a.*, z.name as zone_name, u.name as upazila_name, d.name as district_name, div.name as division_name
-                        FROM areas a 
-                        LEFT JOIN zones z ON a.zone_id = z.id 
-                        LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        WHERE a.zone_id = ? 
-                        ORDER BY a.name ASC";
+                $sql = "SELECT * FROM areas WHERE zone_id = ? ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql, [$zoneId]);
             } else {
-                $sql = "SELECT a.*, z.name as zone_name, u.name as upazila_name, d.name as district_name, div.name as division_name
-                        FROM areas a 
-                        LEFT JOIN zones z ON a.zone_id = z.id 
-                        LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                        LEFT JOIN districts d ON u.district_id = d.id 
-                        LEFT JOIN divisions div ON d.division_id = div.id
-                        ORDER BY div.name ASC, d.name ASC, u.name ASC, z.name ASC, a.name ASC";
+                $sql = "SELECT * FROM areas ORDER BY name ASC";
                 $data = $this->db->fetchAll($sql);
             }
             
@@ -497,16 +457,7 @@ class LocationManager {
     ================*/
     public function getLocationHierarchy($areaId) {
         try {
-            $sql = "SELECT a.name as area_name, z.name as zone_name, u.name as upazila_name, 
-                           d.name as district_name, div.name as division_name,
-                           a.id as area_id, z.id as zone_id, u.id as upazila_id, 
-                           d.id as district_id, div.id as division_id
-                    FROM areas a 
-                    LEFT JOIN zones z ON a.zone_id = z.id 
-                    LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                    LEFT JOIN districts d ON u.district_id = d.id 
-                    LEFT JOIN divisions div ON d.division_id = div.id
-                    WHERE a.id = ?";
+            $sql = "SELECT a.name as area_name, z.name as zone_name, u.name as upazila_name, d.name as district_name, div.name as division_name, a.id as area_id, z.id as zone_id, u.id as upazila_id, d.id as district_id, div.id as division_id FROM areas a LEFT JOIN zones z ON a.zone_id = z.id LEFT JOIN upazilas u ON z.upazila_id = u.id LEFT JOIN districts d ON u.district_id = d.id LEFT JOIN divisions div ON d.division_id = div.id WHERE a.id = ?";
             
             $data = $this->db->fetch($sql, [$areaId]);
             
@@ -534,54 +485,27 @@ class LocationManager {
             $searchPattern = '%' . $searchTerm . '%';
             
             if ($type === 'all' || $type === 'division') {
-                $divisions = $this->db->fetchAll(
-                    "SELECT id, name, 'division' as type FROM divisions WHERE name LIKE ? ORDER BY name",
-                    [$searchPattern]
-                );
+                $divisions = $this->db->fetchAll("SELECT id, name, 'division' as type FROM divisions WHERE name LIKE ? ORDER BY name", [$searchPattern]);
                 $results = array_merge($results, $divisions);
             }
             
             if ($type === 'all' || $type === 'district') {
-                $districts = $this->db->fetchAll(
-                    "SELECT d.id, d.name, 'district' as type, div.name as parent_name 
-                     FROM districts d 
-                     LEFT JOIN divisions div ON d.division_id = div.id 
-                     WHERE d.name LIKE ? ORDER BY d.name",
-                    [$searchPattern]
-                );
+                $districts = $this->db->fetchAll("SELECT d.id, d.name, 'district' as type, div.name as parent_name FROM districts d LEFT JOIN divisions div ON d.division_id = div.id WHERE d.name LIKE ? ORDER BY d.name", [$searchPattern]);
                 $results = array_merge($results, $districts);
             }
             
             if ($type === 'all' || $type === 'upazila') {
-                $upazilas = $this->db->fetchAll(
-                    "SELECT u.id, u.name, 'upazila' as type, d.name as parent_name 
-                     FROM upazilas u 
-                     LEFT JOIN districts d ON u.district_id = d.id 
-                     WHERE u.name LIKE ? ORDER BY u.name",
-                    [$searchPattern]
-                );
+                $upazilas = $this->db->fetchAll("SELECT u.id, u.name, 'upazila' as type, d.name as parent_name FROM upazilas u LEFT JOIN districts d ON u.district_id = d.id WHERE u.name LIKE ? ORDER BY u.name", [$searchPattern]);
                 $results = array_merge($results, $upazilas);
             }
             
             if ($type === 'all' || $type === 'zone') {
-                $zones = $this->db->fetchAll(
-                    "SELECT z.id, z.name, 'zone' as type, u.name as parent_name 
-                     FROM zones z 
-                     LEFT JOIN upazilas u ON z.upazila_id = u.id 
-                     WHERE z.name LIKE ? ORDER BY z.name",
-                    [$searchPattern]
-                );
+                $zones = $this->db->fetchAll("SELECT z.id, z.name, 'zone' as type, u.name as parent_name FROM zones z LEFT JOIN upazilas u ON z.upazila_id = u.id WHERE z.name LIKE ? ORDER BY z.name", [$searchPattern]);
                 $results = array_merge($results, $zones);
             }
             
             if ($type === 'all' || $type === 'area') {
-                $areas = $this->db->fetchAll(
-                    "SELECT a.id, a.name, 'area' as type, z.name as parent_name 
-                     FROM areas a 
-                     LEFT JOIN zones z ON a.zone_id = z.id 
-                     WHERE a.name LIKE ? ORDER BY a.name",
-                    [$searchPattern]
-                );
+                $areas = $this->db->fetchAll("SELECT a.id, a.name, 'area' as type, z.name as parent_name FROM areas a LEFT JOIN zones z ON a.zone_id = z.id WHERE a.name LIKE ? ORDER BY a.name", [$searchPattern]);
                 $results = array_merge($results, $areas);
             }
             
