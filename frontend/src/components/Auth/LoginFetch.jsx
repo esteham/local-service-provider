@@ -30,7 +30,7 @@ const LoginFetchModal = ({ show, onHide }) => {
       setError("");
 
       try {
-        const response = await fetch(`${BASE_URL}backend/api/auth/login.php`, {
+        const response = await fetch(`${BASE_URL}/backend/api/auth/login.php`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -3,6 +3,7 @@ import { Navbar, Nav, Container, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import RegistrationModal from "../auth/RegistrationModal";
 import "../../assets/css/header.css";
 
 const Header = ({ onLoginClick }) => {
@@ -10,6 +11,7 @@ const Header = ({ onLoginClick }) => {
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
   const isLoggedIn = user && ["admin", "agent", "worker"].includes(user.role);
 
@@ -120,9 +122,13 @@ const Header = ({ onLoginClick }) => {
                 >
                   Login
                 </Button>
-                <Link to="/register">
-                  <Button variant="light" size="sm">Register</Button>
-                </Link>
+                <Button 
+                  variant="light" 
+                  size="sm"
+                  onClick={() => setShowRegistrationModal(true)}
+                >
+                  Register
+                </Button>
               </>
             ) : (
               <div className="dropdown">
@@ -152,6 +158,12 @@ const Header = ({ onLoginClick }) => {
           </Nav>
         </Navbar.Collapse>
       </Container>
+      
+      {/* Registration Modal */}
+      <RegistrationModal 
+        show={showRegistrationModal} 
+        onHide={() => setShowRegistrationModal(false)} 
+      />
     </Navbar>
   );
 };

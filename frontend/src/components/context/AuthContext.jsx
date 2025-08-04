@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const response = await fetch(`${BASE_URL}backend/api/auth/logout.php`, {
+      const response = await fetch(`${BASE_URL}/backend/api/auth/logout.php`, {
         method: "POST",
         credentials: "include",
         headers: {

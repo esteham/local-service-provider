@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'agent', 'worker', 'user') NOT NULL DEFAULT 'user',
     status ENUM('active', 'inactive') DEFAULT 'active',
+    image VARCHAR(200) DEFAULT NULL,
     reset_token VARCHAR(255) NULL,
     reset_token_expiry TIMESTAMP NULL,
     last_login TIMESTAMP NULL,

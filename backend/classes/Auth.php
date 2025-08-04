@@ -51,12 +51,18 @@ class Auth {
             'status' => 'active'
         ];
         
+        // Add optional fields if provided
+        if (!empty($userData['image'])) {
+            $insertData['image'] = $userData['image'];
+        }
+        
         try {
             $userId = $this->db->insert('users', $insertData);
             
             return [
                 'success' => true,
                 'message' => 'User registered successfully',
+                'user_id' => $userId,
                 'data' => [
                     'id' => $userId,
                     'username' => $userData['username'],
