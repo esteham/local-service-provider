@@ -1,6 +1,7 @@
 import React from "react";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { motion as MotionDiv } from "framer-motion";
+import WorkerPic from "../../../assets/images/peakpx.jpg"
 
 const WorkerSection = () => {
   const fadeIn = {
@@ -65,7 +66,7 @@ const WorkerSection = () => {
                     style={{ height: '120px' }}
                   >
                     <div className="bg-white rounded-circle p-2 d-inline-block shadow">
-                      <img className="rounded-circle" src="/src/assets/images/peakpx.jpg"></img>
+                      <img className="rounded-circle" src={WorkerPic} alt="worker"></img>
                     </div>
                   </div>
                   <Card.Body className="p-4 text-center">

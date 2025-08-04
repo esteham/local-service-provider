@@ -8,6 +8,7 @@ import { motion as MotionDiv } from 'framer-motion';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import LoginFetchModal from '../Auth/LoginFetch';
+import ProfessionalTeam from "../../assets/images/many-different-professions-collage-happy-600nw-2453357543.webp";
 
 const Services = () => {
   // State organization
@@ -321,7 +322,7 @@ const Services = () => {
             </Col>
             <Col lg={6}>
               <img 
-                src="/src/assets/images/many-different-professions-collage-happy-600nw-2453357543.webp" 
+                src={ProfessionalTeam} 
                 alt="Our professional team providing various services" 
                 className="img-fluid rounded shadow"
                 loading="lazy"

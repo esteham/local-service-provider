@@ -2,6 +2,7 @@ import React from "react";
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import { motion as MotionDiv } from "framer-motion";
 import { Link } from "react-router-dom";
+import AgentPic from "../../../assets/images/peakpx.jpg";
 
 const AgentSection = () => {
   const fadeIn = {
@@ -83,7 +84,7 @@ const AgentSection = () => {
               <Card className="border-0 rounded-4 shadow-lg overflow-hidden">
                 <Card.Img 
                   variant="top" 
-                  src="/src/assets/images/peakpx.jpg" 
+                  src={AgentPic}
                   alt="Service Provider" 
                 />
                 <Card.Body className="bg-dark text-white p-4">

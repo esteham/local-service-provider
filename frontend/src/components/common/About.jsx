@@ -9,6 +9,13 @@ import {
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 import { motion as MotionDiv } from 'framer-motion';
+import CreativeLabor from "../../assets/images/creative-labor-day-banner-composition_23-2149503647.avif";
+import OurStory from "../../assets/images/maxresdefault.jpg";
+import TeamMember1 from "../../assets/images/20210527_142533.jpg";
+import TeamMember2 from "../../assets/images/IMG-20210128-WA0147.jpg";
+import TeamMember3 from "../../assets/images/IMG_20200131_143230.jpg";
+import TeamMember4 from "../../assets/images/received_363411758360649.jpeg";
+
 
 const About = () => {
   const features = [
@@ -77,7 +84,7 @@ const About = () => {
           </Col>
           <Col lg={6}>
             <img 
-              src="/src/assets/images/creative-labor-day-banner-composition_23-2149503647.avif" 
+              src={CreativeLabor}
               alt="Our team at work" 
               className="img-fluid rounded shadow"
             />
@@ -106,7 +113,7 @@ const About = () => {
           <Col lg={6} className="order-lg-2">
             <div className="position-relative">
               <img 
-                src="/src/assets/images/maxresdefault.jpg" 
+                src={OurStory}
                 alt="Our story" 
                 className="img-fluid rounded shadow"
               />
@@ -152,25 +159,25 @@ const About = () => {
                 name: "John Smith",
                 role: "Founder & CEO",
                 bio: "Master Technician with 25 years experience",
-                img: "/src/assets/images/20210527_142533.jpg"
+                img: TeamMember1
               },
               {
                 name: "Sarah Johnson",
                 role: "Operations Manager",
                 bio: "10 years in customer service management",
-                img: "/src/assets/images/IMG-20210128-WA0147.jpg"
+                img: TeamMember2
               },
               {
                 name: "Mike Davis",
                 role: "Lead Technician",
                 bio: "Specializes in HVAC systems",
-                img: "/src/assets/images/IMG_20200131_143230.jpg"
+                img: TeamMember3
               },
               {
                 name: "Emily Wilson",
                 role: "Customer Relations",
                 bio: "Ensures 100% customer satisfaction",
-                img: "/src/assets/images/received_363411758360649.jpeg"
+                img: TeamMember4
               }
             ].map((member, index) => (
               <Col key={index} md={6} lg={3}>
