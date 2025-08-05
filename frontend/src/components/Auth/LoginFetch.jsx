@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Form, Button, Card, Alert, Spinner, Modal } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { FiLogIn, FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
+import toast from "react-hot-toast";
+import { FiLogIn, FiUser, FiLock, FiAlertCircle, FiX } from "react-icons/fi";
 import * as Yup from "yup";
 import { useFormik } from "formik";
 
@@ -48,6 +49,7 @@ const LoginFetchModal = ({ show, onHide }) => {
         if (data.success) {
           login({ username: values.username, role: data.role });
           onHide(); // Close modal
+          toast.success(`Welcome back, ${values.username.toUpperCase()}!`);
 
           if (["admin", "agent", "worker"].includes(data.role)) {
             navigate(
@@ -75,19 +77,28 @@ const LoginFetchModal = ({ show, onHide }) => {
 
   return (
     <Modal show={show} onHide={onHide} centered>
-      <Modal.Body>
-        <Card className="shadow-sm border-0" style={{ width: "100%", maxWidth: "400px", margin: "auto" }}>
-          <Card.Body className="p-4">
-            <div className="text-center mb-4">
-              <div className="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
-                <FiLogIn size={28} className="text-primary" />
+      <Modal.Body className="p-0">
+        <Card className="shadow-lg border-0 rounded-4 overflow-hidden" style={{ width: "100%", maxWidth: "400px", margin: "auto" }}>
+          {/* Modern Header */}
+          <div className="bg-primary text-white p-4 position-relative">
+            <button 
+              onClick={onHide}
+              className="btn btn-sm btn-link text-white position-absolute end-0 top-0 mt-2 me-2"
+            >
+              <FiX size={20} />
+            </button>
+            <div className="text-center">
+              <div className="bg-white bg-opacity-20 rounded-circle d-inline-flex p-3 mb-3">
+                <FiLogIn size={24} className="text-white" />
               </div>
-              <h3 className="fw-bold">Welcome Back</h3>
-              <p className="text-muted">Please enter your credentials to login</p>
+              <h3 className="fw-bold mb-1">Welcome Back</h3>
+              <p className="text-white text-opacity-80 mb-0">Sign in to continue</p>
             </div>
-
+          </div>
+          
+          <Card.Body className="p-4">
             {error && (
-              <Alert variant="danger" className="d-flex align-items-center">
+              <Alert variant="danger" className="d-flex align-items-center rounded-3">
                 <FiAlertCircle className="me-2" size={18} />
                 {error}
               </Alert>
@@ -147,7 +158,7 @@ const LoginFetchModal = ({ show, onHide }) => {
               <Button
                 variant="primary"
                 type="submit"
-                className="w-100 py-2 fw-bold"
+                className="w-100 py-2 fw-bold rounded-3"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -166,9 +177,9 @@ const LoginFetchModal = ({ show, onHide }) => {
 
             <div className="text-center mt-4 pt-3 border-top">
               <p className="text-muted small mb-0">
-                Are you forget your Password?{" "}
-                <a href="/forgot-password" className="text-decoration-none">
-                  Click Here!
+                Forgot your password?{" "}
+                <a href="/forgot-password" className="text-decoration-none text-primary">
+                  Reset it here
                 </a>
               </p>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -11,7 +12,7 @@ import About from "./components/common/About";
 import Contact from "./components/common/Contact";
 import Services from "./components/common/Services";
 import Footer from "./components/common/Footer";
-import LoginFetch from "./components/Auth/LoginFetch"; // 👉 this is modal component
+import LoginFetch from "./components/Auth/LoginFetch"; 
 import AgentDashboard from "./components/Agents/AgentDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import WorkerDashboard from "./components/Workers/WorkerDashboard";
@@ -52,7 +53,7 @@ const RoleDashboard = () => {
 
 function App() {
   const location = useLocation();
-  const [showLogin, LoginFetchModal] = useState(false); // 🔐 control modal visibility
+  const [showLogin, LoginFetchModal] = useState(false); //Control modal visibility
 
   const hiddenFooterRoutes = [
     "/AdminDashboard",
@@ -115,6 +116,7 @@ function App() {
       <LoginFetch show={showLogin} onHide={() => LoginFetchModal(false)} />
 
       {shouldShowFooter && <Footer />}
+      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
     </AuthProvider>
   );
 }
