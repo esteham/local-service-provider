@@ -40,8 +40,8 @@ const ServicesContent = () => {
     setLoading(true);
     try {
       const [servicesRes, categoriesRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php?action=services`),
-        axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php?action=categories`)
+        axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php?action=services`, { withCredentials: true }),
+        axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php?action=categories`, { withCredentials: true })
       ]);
 
       if (servicesRes.data.success) {
@@ -71,7 +71,8 @@ const ServicesContent = () => {
         data: serviceForm,
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        withCredentials: true
       });
 
       if (response.data.success) {
@@ -101,7 +102,8 @@ const ServicesContent = () => {
         data: categoryForm,
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        withCredentials: true
       });
 
       if (response.data.success) {
@@ -123,7 +125,8 @@ const ServicesContent = () => {
     
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceId}`
+        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceId}`,
+        { withCredentials: true }
       );
 
       if (response.data.success) {
@@ -143,7 +146,8 @@ const ServicesContent = () => {
     
     try {
       const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category&id=${categoryId}`
+        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category&id=${categoryId}`,
+        { withCredentials: true }
       );
 
       if (response.data.success) {

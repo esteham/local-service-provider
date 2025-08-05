@@ -1,20 +1,19 @@
 <?php
 header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: http://localhost:5173');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
 require_once '../config/database.php';
+require_once '../middleware/auth.php';
 require_once '../classes/DB.php';
-require_once '../classes/Auth.php';
 
-// ✅ PDO Singleton instance
 $db = DB::getInstance();
-$auth = new Auth($db);
 
 // Method & action
 $method = $_SERVER['REQUEST_METHOD'];
@@ -23,9 +22,9 @@ $action = $_GET['action'] ?? '';
 try {
     switch ($method) {
         case 'GET': handleGet($db, $action); break;
-        case 'POST': handlePost($db, $auth, $action); break;
-        case 'PUT': handlePut($db, $auth, $action); break;
-        case 'DELETE': handleDelete($db, $auth, $action); break;
+        case 'POST': handlePost($db, $action); break;
+        case 'PUT': handlePut($db, $action); break;
+        case 'DELETE': handleDelete($db, $action); break;
         default: throw new Exception('Method not allowed');
     }
 } catch (Exception $e) {
@@ -46,11 +45,19 @@ function handleGet($db, $action) {
 }
 
 // POST handler
-function handlePost($db, $auth, $action) {
-    $user = $auth->getCurrentUser();
-    if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
+function handlePost($db, $action) {
+    // Check authentication for write operations
+    if (!isAuthenticated()) {
         http_response_code(401);
         echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    // Check if user is admin or agent
+    $user = getCurrentUser();
+    if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Forbidden - Admin or Agent access required']);
         return;
     }
 
@@ -63,11 +70,19 @@ function handlePost($db, $auth, $action) {
 }
 
 // PUT handler
-function handlePut($db, $auth, $action) {
-    $user = $auth->getCurrentUser();
-    if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
+function handlePut($db, $action) {
+    // Check authentication for write operations
+    if (!isAuthenticated()) {
         http_response_code(401);
         echo json_encode(['error' => 'Unauthorized']);
+        return;
+    }
+    
+    // Check if user is admin or agent
+    $user = getCurrentUser();
+    if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Forbidden - Admin or Agent access required']);
         return;
     }
 
@@ -80,9 +95,9 @@ function handlePut($db, $auth, $action) {
 }
 
 // DELETE handler
-function handleDelete($db, $auth, $action) {
-    $user = $auth->getCurrentUser();
-    if (!$user || $user['role'] !== 'admin') {
+function handleDelete($db, $action) {
+    // Check authentication for delete operations
+    if (!isAuthenticated() || !isAdmin()) {
         http_response_code(401);
         echo json_encode(['error' => 'Unauthorized - Admin access required']);
         return;
