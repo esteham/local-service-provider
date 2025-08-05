@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Form, Button, Card, Alert, Spinner, Modal } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { FiLogIn, FiUser, FiLock, FiAlertCircle } from "react-icons/fi";
 import * as Yup from "yup";
@@ -8,6 +8,7 @@ import { useFormik } from "formik";
 
 const LoginFetchModal = ({ show, onHide }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,15 +48,19 @@ const LoginFetchModal = ({ show, onHide }) => {
         if (data.success) {
           login({ username: values.username, role: data.role });
           onHide(); // Close modal
-          navigate(
-            data.role === "admin"
-              ? "/AdminDashboard"
-              : data.role === "agent"
-              ? "/AgentDashboard"
-              : data.role === "worker"
-              ? "/WorkerDashboard"
-              : "/"
-          );
+
+          if (["admin", "agent", "worker"].includes(data.role)) {
+            navigate(
+              data.role === "admin"
+                ? "/AdminDashboard"
+                : data.role === "agent"
+                ? "/AgentDashboard"
+                : "/WorkerDashboard"
+            );
+          } else {
+            //Regular users stay on the same page
+            navigate(location.pathname); 
+          }
         } else {
           setError(data.message || "Invalid credentials");
         }
@@ -65,7 +70,7 @@ const LoginFetchModal = ({ show, onHide }) => {
       } finally {
         setIsLoading(false);
       }
-    },
+    }
   });
 
   return (

@@ -13,7 +13,8 @@ const Header = ({ onLoginClick }) => {
   const [loading, setLoading] = useState(true);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
-  const isLoggedIn = user && ["admin", "agent", "worker"].includes(user.role);
+  // const isLoggedIn = user && ["admin", "agent", "worker"].includes(user.role);
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     fetchServices();
@@ -142,11 +143,26 @@ const Header = ({ onLoginClick }) => {
                   {user.username}
                 </Button>
                 <ul className="dropdown-menu dropdown-menu-end">
-                  <li>
-                    <Link className="dropdown-item" to={getDashboardPath()}>
-                      Profile
-                    </Link>
-                  </li>
+                  {["admin", "agent", "worker"].includes(user.role) ? (
+                    <li>
+                      <Link className="dropdown-item" to={getDashboardPath()}>
+                        Profile
+                      </Link>
+                    </li>
+                  ) : (
+                    <>
+                      <li>
+                        <Link className="dropdown-item" to="/profile">
+                          My Account
+                        </Link>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item" to="/my-requests">
+                          My Requests
+                        </Link>
+                      </li>
+                    </>
+                  )}
                   <li>
                     <button className="dropdown-item" onClick={handleLogout}>
                       Logout

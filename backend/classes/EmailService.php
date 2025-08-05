@@ -207,5 +207,7 @@ class EmailService {
              WHERE user_id = ?",
             [$userId]
         );
+
     }
+    
 }
