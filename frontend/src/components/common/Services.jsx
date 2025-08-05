@@ -153,7 +153,7 @@ const Services = () => {
   }, []);
 
   const handleBookService = useCallback((service) => {
-    const isLoggedIn = !!localStorage.getItem('user_id');
+    const isLoggedIn = !!localStorage.getItem('user');
     
     if (!isLoggedIn) {
       setState(prev => ({

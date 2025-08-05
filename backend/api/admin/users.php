@@ -29,10 +29,45 @@ DatabaseConfig::createDatabase();
 try {
     switch ($method) {
         case 'GET':
-            // Get all users
-            $stmt = $pdo->query("SELECT id, username, email, role, status, created_at 
-                                FROM users 
-                                ORDER BY created_at DESC");
+            // Check for status filter
+            $statusFilter = $_GET['status'] ?? null;
+            
+            if ($statusFilter === 'pending') {
+                // Get pending users with additional details
+                $stmt = $pdo->query("
+                    SELECT u.id, u.username, u.email, u.first_name, u.last_name, u.phone, 
+                           u.role, u.status, u.created_at, u.profile_image,
+                           CASE 
+                               WHEN u.role = 'worker' THEN w.skills
+                               WHEN u.role = 'agent' THEN a.zone_id
+                               ELSE NULL
+                           END as additional_info,
+                           CASE 
+                               WHEN u.role = 'worker' THEN z.name
+                               WHEN u.role = 'agent' THEN z2.name
+                               ELSE NULL
+                           END as zone_name
+                    FROM users u
+                    LEFT JOIN workers w ON u.id = w.user_id AND u.role = 'worker'
+                    LEFT JOIN zones z ON w.zone_id = z.id
+                    LEFT JOIN agents a ON u.id = a.user_id AND u.role = 'agent'
+                    LEFT JOIN zones z2 ON a.zone_id = z2.id
+                    WHERE u.status = 'pending'
+                    ORDER BY u.created_at DESC
+                ");
+            } else {
+                // Get all users or filter by specific status
+                $whereClause = '';
+                if ($statusFilter) {
+                    $whereClause = "WHERE status = '" . $pdo->quote($statusFilter) . "'";
+                }
+                
+                $stmt = $pdo->query("SELECT id, username, email, role, status, created_at 
+                                    FROM users 
+                                    $whereClause
+                                    ORDER BY created_at DESC");
+            }
+            
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             echo json_encode([

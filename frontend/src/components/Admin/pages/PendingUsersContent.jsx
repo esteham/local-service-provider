@@ -62,14 +62,21 @@ const PendingUsersContent = () => {
     };
 
     const handleRejectUser = async (userId) => {
+        const reason = window.prompt('Please provide a reason for rejection (optional):');
+        if (reason === null) { // User clicked cancel
+            return;
+        }
+        
         if (!window.confirm('Are you sure you want to reject this user? This action cannot be undone.')) {
             return;
         }
 
         try {
             setActionLoading(userId);
-            const response = await axios.delete(`${BASE_URL}/backend/api/admin/users.php`, {
-                data: { user_id: userId },
+            const response = await axios.post(`${BASE_URL}/backend/api/admin/reject_user.php`, {
+                user_id: userId,
+                reason: reason || 'No reason provided'
+            }, {
                 withCredentials: true
             });
 

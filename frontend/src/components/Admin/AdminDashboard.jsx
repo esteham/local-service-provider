@@ -667,6 +667,7 @@ const ModernAdminDashboard = () => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: FaTachometerAlt },
     { id: "users", label: "User Management", icon: FaUsers },
+    { id: "pending-users", label: "Pending Users", icon: FaUserShield },
     { id: "workers", label: "Worker Management", icon: FaUserTie },
     { id: "requests", label: "Service Requests", icon: FaTasks },
     { id: "categories", label: "Categories", icon: FaClipboardList },

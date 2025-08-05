@@ -493,6 +493,63 @@ class Auth {
             return ['success' => false, 'message' => 'User approval failed'];
         }
     }
+    
+    /**
+     * Admin reject user (for workers and agents)
+     */
+    public function rejectUser($userId, $adminId, $reason = 'Application rejected') {
+        try {
+            // Verify admin permissions
+            $admin = $this->db->fetch(
+                "SELECT role FROM users WHERE id = ? AND role = 'admin'",
+                [$adminId]
+            );
+            
+            if (!$admin) {
+                return ['success' => false, 'message' => 'Admin access required'];
+            }
+            
+            // Get user details
+            $user = $this->db->fetch(
+                "SELECT * FROM users WHERE id = ?",
+                [$userId]
+            );
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+            
+            if ($user['status'] !== 'pending') {
+                return ['success' => false, 'message' => 'User is not pending approval'];
+            }
+            
+            // Reject user by setting status to rejected
+            $this->db->update('users', [
+                'status' => 'rejected'
+            ], ['id' => $userId]);
+            
+            // Log the rejection reason (you might want to create a separate table for this)
+            // For now, we'll just log it
+            error_log("User {$userId} rejected by admin {$adminId}. Reason: {$reason}");
+            
+            return [
+                'success' => true,
+                'message' => 'User rejected successfully',
+                'data' => [
+                    'id' => $userId,
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'role' => $user['role'],
+                    'status' => 'rejected',
+                    'reason' => $reason
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('User rejection failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'User rejection failed'];
+        }
+    }
 }
 
 ?>
