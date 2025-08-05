@@ -33,47 +33,113 @@ try {
             $statusFilter = $_GET['status'] ?? null;
             
             if ($statusFilter === 'pending') {
-                // Get pending users with additional details
-                $stmt = $pdo->query("
-                    SELECT u.id, u.username, u.email, u.first_name, u.last_name, u.phone, 
-                           u.role, u.status, u.created_at, u.profile_image,
-                           CASE 
-                               WHEN u.role = 'worker' THEN w.skills
-                               WHEN u.role = 'agent' THEN a.zone_id
-                               ELSE NULL
-                           END as additional_info,
-                           CASE 
-                               WHEN u.role = 'worker' THEN z.name
-                               WHEN u.role = 'agent' THEN z2.name
-                               ELSE NULL
-                           END as zone_name
-                    FROM users u
-                    LEFT JOIN workers w ON u.id = w.user_id AND u.role = 'worker'
-                    LEFT JOIN zones z ON w.zone_id = z.id
-                    LEFT JOIN agents a ON u.id = a.user_id AND u.role = 'agent'
-                    LEFT JOIN zones z2 ON a.zone_id = z2.id
-                    WHERE u.status = 'pending'
-                    ORDER BY u.created_at DESC
-                ");
+                // Get pending users from workers and agents tables (not users table)
+                try {
+                    $pendingUsers = [];
+                    
+                    // Get pending workers
+                    $workerStmt = $pdo->prepare("
+                        SELECT w.id, w.user_id, w.first_name, w.last_name, w.phone, w.skills, w.zone_id, w.created_at,
+                               u.username, u.email, 'worker' as role, 'pending' as status, u.image as profile_image,
+                               z.name as zone_name
+                        FROM workers w
+                        JOIN users u ON w.user_id = u.id
+                        LEFT JOIN zones z ON w.zone_id = z.id
+                        WHERE w.status = 'pending'
+                        ORDER BY w.created_at DESC
+                    ");
+                    $workerStmt->execute();
+                    $pendingWorkers = $workerStmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Format worker data
+                    foreach ($pendingWorkers as $worker) {
+                        $pendingUsers[] = [
+                            'id' => $worker['user_id'],
+                            'username' => $worker['username'],
+                            'email' => $worker['email'],
+                            'first_name' => $worker['first_name'],
+                            'last_name' => $worker['last_name'],
+                            'phone' => $worker['phone'],
+                            'role' => 'worker',
+                            'status' => 'pending',
+                            'created_at' => $worker['created_at'],
+                            'profile_image' => $worker['profile_image'],
+                            'additional_info' => $worker['skills'],
+                            'zone_name' => $worker['zone_name']
+                        ];
+                    }
+                    
+                    // Get pending agents
+                    $agentStmt = $pdo->prepare("
+                        SELECT a.id, a.user_id, a.first_name, a.last_name, a.phone, a.zone_id, a.created_at,
+                               u.username, u.email, 'agent' as role, 'pending' as status, u.image as profile_image,
+                               z.name as zone_name
+                        FROM agents a
+                        JOIN users u ON a.user_id = u.id
+                        LEFT JOIN zones z ON a.zone_id = z.id
+                        WHERE a.status = 'pending'
+                        ORDER BY a.created_at DESC
+                    ");
+                    $agentStmt->execute();
+                    $pendingAgents = $agentStmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    // Format agent data
+                    foreach ($pendingAgents as $agent) {
+                        $pendingUsers[] = [
+                            'id' => $agent['user_id'],
+                            'username' => $agent['username'],
+                            'email' => $agent['email'],
+                            'first_name' => $agent['first_name'],
+                            'last_name' => $agent['last_name'],
+                            'phone' => $agent['phone'],
+                            'role' => 'agent',
+                            'status' => 'pending',
+                            'created_at' => $agent['created_at'],
+                            'profile_image' => $agent['profile_image'],
+                            'additional_info' => $agent['zone_id'] ? (string)$agent['zone_id'] : null,
+                            'zone_name' => $agent['zone_name']
+                        ];
+                    }
+                    
+                    // Sort by created_at descending
+                    usort($pendingUsers, function($a, $b) {
+                        return strtotime($b['created_at']) - strtotime($a['created_at']);
+                    });
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'data' => $pendingUsers
+                    ]);
+                    break;
+                    
+                } catch (Exception $e) {
+                    error_log("Error in pending users query: " . $e->getMessage());
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Error fetching pending users: ' . $e->getMessage(),
+                        'data' => []
+                    ]);
+                    break;
+                }
             } else {
                 // Get all users or filter by specific status
                 $whereClause = '';
                 if ($statusFilter) {
-                    $whereClause = "WHERE status = '" . $pdo->quote($statusFilter) . "'";
+                    $whereClause = "WHERE status = " . $pdo->quote($statusFilter);
                 }
                 
                 $stmt = $pdo->query("SELECT id, username, email, role, status, created_at 
                                     FROM users 
                                     $whereClause
                                     ORDER BY created_at DESC");
+                
+                $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                echo json_encode([
+                    'success' => true,
+                    'data' => $users
+                ]);
             }
-            
-            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            echo json_encode([
-                'success' => true,
-                'data' => $users
-            ]);
             break;
             
         case 'POST':

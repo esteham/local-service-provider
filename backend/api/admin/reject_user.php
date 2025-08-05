@@ -30,6 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    require_once '../../config/database.php';
+    
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (empty($input)) {
@@ -38,17 +40,63 @@ try {
     }
     
     // Validate required fields
-    if (empty($input['user_id'])) {
-        echo json_encode(['success' => false, 'message' => 'User ID is required']);
+    if (empty($input['user_id']) || empty($input['role'])) {
+        echo json_encode(['success' => false, 'message' => 'User ID and role are required']);
         exit;
     }
     
     $userId = (int)$input['user_id'];
+    $role = $input['role'];
     $adminId = $_SESSION['user']['id'];
     $reason = $input['reason'] ?? 'Application rejected by admin';
     
-    $auth = new Auth();
-    $result = $auth->rejectUser($userId, $adminId, $reason);
+    DatabaseConfig::createDatabase();
+    $pdo = DatabaseConfig::getConnection();
+    
+    // Start transaction to ensure both updates succeed
+    $pdo->beginTransaction();
+    
+    try {
+        // First, update the users table status to 'rejected'
+        $userStmt = $pdo->prepare("UPDATE users SET status = 'rejected' WHERE id = ? AND status = 'pending'");
+        $userStmt->execute([$userId]);
+        
+        if ($userStmt->rowCount() === 0) {
+            throw new Exception('User not found or already processed');
+        }
+        
+        // Then update the role-specific table
+        if ($role === 'worker') {
+            $roleStmt = $pdo->prepare("UPDATE workers SET status = 'rejected' WHERE user_id = ? AND status = 'pending'");
+            $roleStmt->execute([$userId]);
+            
+            if ($roleStmt->rowCount() === 0) {
+                throw new Exception('Worker record not found or already processed');
+            }
+            
+            $message = 'Worker rejected successfully';
+        } elseif ($role === 'agent') {
+            $roleStmt = $pdo->prepare("UPDATE agents SET status = 'rejected' WHERE user_id = ? AND status = 'pending'");
+            $roleStmt->execute([$userId]);
+            
+            if ($roleStmt->rowCount() === 0) {
+                throw new Exception('Agent record not found or already processed');
+            }
+            
+            $message = 'Agent rejected successfully';
+        } else {
+            throw new Exception('Invalid role specified');
+        }
+        
+        // Commit the transaction
+        $pdo->commit();
+        $result = ['success' => true, 'message' => $message];
+        
+    } catch (Exception $e) {
+        // Rollback the transaction on error
+        $pdo->rollback();
+        $result = ['success' => false, 'message' => $e->getMessage()];
+    }
     
     if ($result['success']) {
         http_response_code(200);

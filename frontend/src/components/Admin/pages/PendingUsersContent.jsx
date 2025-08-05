@@ -38,11 +38,12 @@ const PendingUsersContent = () => {
         }
     };
 
-    const handleApproveUser = async (userId) => {
+    const handleApproveUser = async (userId, role) => {
         try {
             setActionLoading(userId);
             const response = await axios.post(`${BASE_URL}/backend/api/admin/approve_user.php`, {
-                user_id: userId
+                user_id: userId,
+                role: role
             }, {
                 withCredentials: true
             });
@@ -61,7 +62,7 @@ const PendingUsersContent = () => {
         }
     };
 
-    const handleRejectUser = async (userId) => {
+    const handleRejectUser = async (userId, role) => {
         const reason = window.prompt('Please provide a reason for rejection (optional):');
         if (reason === null) { // User clicked cancel
             return;
@@ -75,6 +76,7 @@ const PendingUsersContent = () => {
             setActionLoading(userId);
             const response = await axios.post(`${BASE_URL}/backend/api/admin/reject_user.php`, {
                 user_id: userId,
+                role: role,
                 reason: reason || 'No reason provided'
             }, {
                 withCredentials: true
@@ -122,10 +124,16 @@ const PendingUsersContent = () => {
     });
 
     const getStatusBadge = (user) => {
-        if (!user.email_verified) {
+        // Show the actual status from the database
+        if (user.status === 'pending') {
+            return <Badge bg="info">Pending Approval</Badge>;
+        } else if (user.status === 'email_pending') {
             return <Badge bg="warning">Email Pending</Badge>;
+        } else if (user.status === 'rejected') {
+            return <Badge bg="danger">Rejected</Badge>;
+        } else {
+            return <Badge bg="success">Active</Badge>;
         }
-        return <Badge bg="info">Pending Approval</Badge>;
     };
 
     if (loading) {
@@ -219,30 +227,28 @@ const PendingUsersContent = () => {
                                                 >
                                                     <FaEye />
                                                 </Button>
-                                                {user.email_verified && (
-                                                    <>
-                                                        <Button
-                                                            variant="outline-success"
-                                                            size="sm"
-                                                            onClick={() => handleApproveUser(user.id)}
-                                                            disabled={actionLoading === user.id}
-                                                        >
-                                                            {actionLoading === user.id ? (
-                                                                <Spinner size="sm" />
-                                                            ) : (
-                                                                <FaCheck />
-                                                            )}
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline-danger"
-                                                            size="sm"
-                                                            onClick={() => handleRejectUser(user.id)}
-                                                            disabled={actionLoading === user.id}
-                                                        >
-                                                            <FaTimes />
-                                                        </Button>
-                                                    </>
-                                                )}
+                                                <Button
+                                                    variant="outline-success"
+                                                    size="sm"
+                                                    onClick={() => handleApproveUser(user.id, user.role)}
+                                                    disabled={actionLoading === user.id}
+                                                    title="Approve User"
+                                                >
+                                                    {actionLoading === user.id ? (
+                                                        <Spinner size="sm" />
+                                                    ) : (
+                                                        <FaCheck />
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline-danger"
+                                                    size="sm"
+                                                    onClick={() => handleRejectUser(user.id, user.role)}
+                                                    disabled={actionLoading === user.id}
+                                                    title="Reject User"
+                                                >
+                                                    <FaTimes />
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -272,6 +278,10 @@ const PendingUsersContent = () => {
                                             <td>{selectedUser.username}</td>
                                         </tr>
                                         <tr>
+                                            <td><strong>Full Name:</strong></td>
+                                            <td>{selectedUser.first_name} {selectedUser.last_name}</td>
+                                        </tr>
+                                        <tr>
                                             <td><strong>Email:</strong></td>
                                             <td>{selectedUser.email}</td>
                                         </tr>
@@ -287,14 +297,7 @@ const PendingUsersContent = () => {
                                             <td><strong>Status:</strong></td>
                                             <td>{getStatusBadge(selectedUser)}</td>
                                         </tr>
-                                        <tr>
-                                            <td><strong>Email Verified:</strong></td>
-                                            <td>
-                                                <Badge bg={selectedUser.email_verified ? 'success' : 'danger'}>
-                                                    {selectedUser.email_verified ? 'Yes' : 'No'}
-                                                </Badge>
-                                            </td>
-                                        </tr>
+
                                         <tr>
                                             <td><strong>Registered:</strong></td>
                                             <td>{new Date(selectedUser.created_at).toLocaleString()}</td>
@@ -316,10 +319,11 @@ const PendingUsersContent = () => {
                                         This user has registered as an agent and will be able to manage workers and service requests in their assigned area once approved.
                                     </Alert>
                                 )}
-                                {!selectedUser.email_verified && (
-                                    <Alert variant="warning">
-                                        <strong>Email Not Verified:</strong><br />
-                                        This user has not yet verified their email address. They must complete email verification before approval.
+                                {selectedUser.additional_info && (
+                                    <Alert variant="info">
+                                        <strong>Additional Details:</strong><br />
+                                        {selectedUser.role === 'worker' ? `Skills: ${selectedUser.additional_info}` : `Zone ID: ${selectedUser.additional_info}`}
+                                        {selectedUser.zone_name && ` (${selectedUser.zone_name})`}
                                     </Alert>
                                 )}
                             </Col>
@@ -327,32 +331,28 @@ const PendingUsersContent = () => {
                     )}
                 </Modal.Body>
                 <Modal.Footer>
-                    {selectedUser?.email_verified && (
-                        <>
-                            <Button
-                                variant="success"
-                                onClick={() => {
-                                    handleApproveUser(selectedUser.id);
-                                    setShowDetailsModal(false);
-                                }}
-                                disabled={actionLoading === selectedUser?.id}
-                            >
-                                <FaCheck className="me-1" />
-                                Approve User
-                            </Button>
-                            <Button
-                                variant="danger"
-                                onClick={() => {
-                                    handleRejectUser(selectedUser.id);
-                                    setShowDetailsModal(false);
-                                }}
-                                disabled={actionLoading === selectedUser?.id}
-                            >
-                                <FaTimes className="me-1" />
-                                Reject User
-                            </Button>
-                        </>
-                    )}
+                    <Button
+                        variant="success"
+                        onClick={() => {
+                            handleApproveUser(selectedUser.id, selectedUser.role);
+                            setShowDetailsModal(false);
+                        }}
+                        disabled={actionLoading === selectedUser?.id}
+                    >
+                        <FaCheck className="me-1" />
+                        Approve {selectedUser?.role === 'worker' ? 'Worker' : 'Agent'}
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={() => {
+                            handleRejectUser(selectedUser.id, selectedUser.role);
+                            setShowDetailsModal(false);
+                        }}
+                        disabled={actionLoading === selectedUser?.id}
+                    >
+                        <FaTimes className="me-1" />
+                        Reject {selectedUser?.role === 'worker' ? 'Worker' : 'Agent'}
+                    </Button>
                     <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
                         Close
                     </Button>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 04, 2025 at 04:59 PM
+-- Generation Time: Aug 05, 2025 at 06:35 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -30,9 +30,24 @@ SET time_zone = "+00:00";
 CREATE TABLE `agents` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `assigned_zone_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `phone` varchar(20) DEFAULT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `join_date` date DEFAULT NULL,
+  `zone_id` int(11) DEFAULT NULL,
+  `area_id` int(11) DEFAULT NULL,
+  `status` enum('pending','active','inactive') DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `agents`
+--
+
+INSERT INTO `agents` (`id`, `user_id`, `phone`, `first_name`, `last_name`, `address`, `join_date`, `zone_id`, `area_id`, `status`, `created_at`, `updated_at`) VALUES
+(3, 29, '01723581023', 'Esteham', 'Hasan', 'Dhaka1204', '2025-08-05', 9, 19, 'pending', '2025-08-05 11:49:39', '2025-08-05 11:49:39');
 
 -- --------------------------------------------------------
 
@@ -52,16 +67,27 @@ CREATE TABLE `areas` (
 --
 
 INSERT INTO `areas` (`id`, `zone_id`, `name`, `created_at`) VALUES
-(1, 1, 'Dhanmondi Residential Area', '2025-08-04 11:10:08'),
-(2, 1, 'Dhanmondi Commercial Area', '2025-08-04 11:10:08'),
-(3, 2, 'Dhanmondi Lake Area', '2025-08-04 11:10:08'),
-(4, 3, 'Gulshan Avenue', '2025-08-04 11:10:08'),
-(5, 3, 'Gulshan Circle 1', '2025-08-04 11:10:08'),
-(6, 4, 'Gulshan Circle 2', '2025-08-04 11:10:08'),
-(7, 5, 'Uttara Residential', '2025-08-04 11:10:08'),
-(8, 6, 'Uttara Commercial', '2025-08-04 11:10:08'),
-(9, 7, 'Mirpur Stadium Area', '2025-08-04 11:10:08'),
-(10, 8, 'Mirpur DOHS', '2025-08-04 11:10:08');
+(1, 1, 'Dhanmondi 1/A', '2025-08-04 15:12:27'),
+(2, 1, 'Dhanmondi 2/A', '2025-08-04 15:12:27'),
+(3, 1, 'Dhanmondi 3/A', '2025-08-04 15:12:27'),
+(4, 2, 'Dhanmondi 4/A', '2025-08-04 15:12:27'),
+(5, 2, 'Dhanmondi 5/A', '2025-08-04 15:12:27'),
+(6, 3, 'Gulshan 1', '2025-08-04 15:12:27'),
+(7, 3, 'Gulshan 2', '2025-08-04 15:12:27'),
+(8, 4, 'Gulshan Avenue', '2025-08-04 15:12:27'),
+(9, 4, 'Gulshan Circle', '2025-08-04 15:12:27'),
+(10, 5, 'Uttara Sector 1', '2025-08-04 15:12:27'),
+(11, 5, 'Uttara Sector 2', '2025-08-04 15:12:27'),
+(12, 6, 'Uttara Sector 3', '2025-08-04 15:12:27'),
+(13, 6, 'Uttara Sector 4', '2025-08-04 15:12:27'),
+(14, 7, 'Mirpur 1', '2025-08-04 15:12:27'),
+(15, 7, 'Mirpur 2', '2025-08-04 15:12:27'),
+(16, 8, 'Mirpur 10', '2025-08-04 15:12:27'),
+(17, 8, 'Mirpur 11', '2025-08-04 15:12:27'),
+(18, 9, 'Gazipur Town', '2025-08-04 15:12:27'),
+(19, 9, 'Board Bazar', '2025-08-04 15:12:27'),
+(20, 10, 'Industrial Area 1', '2025-08-04 15:12:27'),
+(21, 10, 'Industrial Area 2', '2025-08-04 15:12:27');
 
 -- --------------------------------------------------------
 
@@ -108,15 +134,21 @@ CREATE TABLE `districts` (
 --
 
 INSERT INTO `districts` (`id`, `division_id`, `name`, `created_at`) VALUES
-(1, 1, 'Dhaka', '2025-08-04 11:10:07'),
-(2, 1, 'Gazipur', '2025-08-04 11:10:07'),
-(3, 1, 'Narayanganj', '2025-08-04 11:10:07'),
-(4, 2, 'Chittagong', '2025-08-04 11:10:07'),
-(5, 2, 'Comilla', '2025-08-04 11:10:07'),
-(6, 3, 'Rajshahi', '2025-08-04 11:10:07'),
-(7, 4, 'Khulna', '2025-08-04 11:10:07'),
-(8, 5, 'Barisal', '2025-08-04 11:10:07'),
-(9, 1, 'demo', '2025-08-04 14:47:13');
+(1, 1, 'Dhaka', '2025-08-04 15:12:27'),
+(2, 1, 'Gazipur', '2025-08-04 15:12:27'),
+(3, 1, 'Narayanganj', '2025-08-04 15:12:27'),
+(4, 1, 'Tangail', '2025-08-04 15:12:27'),
+(5, 2, 'Chittagong', '2025-08-04 15:12:27'),
+(6, 2, 'Coxs Bazar', '2025-08-04 15:12:27'),
+(7, 2, 'Comilla', '2025-08-04 15:12:27'),
+(8, 3, 'Rajshahi', '2025-08-04 15:12:27'),
+(9, 3, 'Bogra', '2025-08-04 15:12:27'),
+(10, 4, 'Khulna', '2025-08-04 15:12:27'),
+(11, 4, 'Jessore', '2025-08-04 15:12:27'),
+(12, 1, 'Test District', '2025-08-04 15:16:44'),
+(13, 1, 'Dhaka District', '2025-08-04 15:19:41'),
+(14, 1, 'Gazipur District', '2025-08-04 15:19:41'),
+(15, 2, 'Chittagong District', '2025-08-04 15:19:41');
 
 -- --------------------------------------------------------
 
@@ -135,14 +167,14 @@ CREATE TABLE `divisions` (
 --
 
 INSERT INTO `divisions` (`id`, `name`, `created_at`) VALUES
-(1, 'Dhaka', '2025-08-04 11:10:07'),
-(2, 'Chittagong', '2025-08-04 11:10:07'),
-(3, 'Rajshahi', '2025-08-04 11:10:07'),
-(4, 'Khulna', '2025-08-04 11:10:07'),
-(5, 'Barisal', '2025-08-04 11:10:07'),
-(6, 'Sylhet', '2025-08-04 11:10:07'),
-(7, 'Rangpur', '2025-08-04 11:10:07'),
-(8, 'Mymensingh', '2025-08-04 11:10:07');
+(1, 'Dhaka', '2025-08-04 15:12:27'),
+(2, 'Chittagong', '2025-08-04 15:12:27'),
+(3, 'Rajshahi', '2025-08-04 15:12:27'),
+(4, 'Khulna', '2025-08-04 15:12:27'),
+(5, 'Sylhet', '2025-08-04 15:12:27'),
+(6, 'Barisal', '2025-08-04 15:12:27'),
+(7, 'Rangpur', '2025-08-04 15:12:27'),
+(8, 'Mymensingh', '2025-08-04 15:12:27');
 
 -- --------------------------------------------------------
 
@@ -159,12 +191,32 @@ CREATE TABLE `documents` (
   `status` enum('active','inactive') DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `documents`
+-- Table structure for table `email_logs`
 --
 
-INSERT INTO `documents` (`id`, `worker_id`, `doc_type`, `file_path`, `uploaded_at`, `status`) VALUES
-(1, 12, 'certificate', '1754310200_WhatsApp Image 2025-07-30 at 22.17.05_0e34d059.jpg', '2025-08-04 12:23:20', 'active');
+CREATE TABLE `email_logs` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `email_type` enum('otp_verification','welcome','password_reset') NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `status` enum('sent','failed','pending') DEFAULT 'pending',
+  `sent_at` timestamp NULL DEFAULT NULL,
+  `error_message` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `email_logs`
+--
+
+INSERT INTO `email_logs` (`id`, `user_id`, `email`, `email_type`, `subject`, `status`, `sent_at`, `error_message`, `created_at`) VALUES
+(2, 28, 'eshasan1287005@gmail.com', 'otp_verification', 'Email Verification - OTP Code', 'sent', '2025-08-05 01:55:57', NULL, '2025-08-05 05:55:48'),
+(3, 29, 'estahamulhasan@gmail.com', 'otp_verification', 'Email Verification - OTP Code', 'sent', '2025-08-05 07:49:39', NULL, '2025-08-05 11:49:33'),
+(4, 30, 'xet.windsurf@gmail.com', 'otp_verification', 'Email Verification - OTP Code', 'sent', '2025-08-05 08:59:13', NULL, '2025-08-05 12:59:07');
 
 -- --------------------------------------------------------
 
@@ -181,6 +233,35 @@ CREATE TABLE `notifications` (
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `otp_verifications`
+--
+
+CREATE TABLE `otp_verifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `otp_code` varchar(6) NOT NULL,
+  `otp_type` enum('registration','password_reset') DEFAULT 'registration',
+  `expires_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `is_used` tinyint(1) DEFAULT 0,
+  `attempts` int(11) DEFAULT 0,
+  `max_attempts` int(11) DEFAULT 3,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `otp_verifications`
+--
+
+INSERT INTO `otp_verifications` (`id`, `user_id`, `email`, `otp_code`, `otp_type`, `expires_at`, `is_used`, `attempts`, `max_attempts`, `created_at`, `updated_at`) VALUES
+(2, 28, 'eshasan1287005@gmail.com', '100102', 'registration', '2025-08-05 05:56:25', 1, 1, 3, '2025-08-05 05:55:48', '2025-08-05 05:56:25'),
+(3, 29, 'estahamulhasan@gmail.com', '888584', 'registration', '2025-08-05 11:50:01', 1, 1, 3, '2025-08-05 11:49:33', '2025-08-05 11:50:01'),
+(4, 30, 'xet.windsurf@gmail.com', '955494', 'registration', '2025-08-05 12:59:45', 1, 1, 3, '2025-08-05 12:59:07', '2025-08-05 12:59:45');
 
 -- --------------------------------------------------------
 
@@ -385,14 +466,20 @@ CREATE TABLE `upazilas` (
 --
 
 INSERT INTO `upazilas` (`id`, `district_id`, `name`, `created_at`) VALUES
-(1, 1, 'Dhanmondi', '2025-08-04 11:10:07'),
-(2, 1, 'Gulshan', '2025-08-04 11:10:07'),
-(3, 1, 'Uttara', '2025-08-04 11:10:07'),
-(4, 1, 'Mirpur', '2025-08-04 11:10:07'),
-(5, 2, 'Savar', '2025-08-04 11:10:07'),
-(6, 3, 'Narayanganj Sadar', '2025-08-04 11:10:07'),
-(7, 4, 'Chittagong Sadar', '2025-08-04 11:10:07'),
-(8, 5, 'Comilla Sadar', '2025-08-04 11:10:07');
+(1, 1, 'Dhanmondi', '2025-08-04 15:12:27'),
+(2, 1, 'Gulshan', '2025-08-04 15:12:27'),
+(3, 1, 'Uttara', '2025-08-04 15:12:27'),
+(4, 1, 'Mirpur', '2025-08-04 15:12:27'),
+(5, 2, 'Gazipur Sadar', '2025-08-04 15:12:27'),
+(6, 2, 'Sreepur', '2025-08-04 15:12:27'),
+(7, 5, 'Chittagong Sadar', '2025-08-04 15:12:27'),
+(8, 5, 'Hathazari', '2025-08-04 15:12:27'),
+(9, 8, 'Rajshahi Sadar', '2025-08-04 15:12:27'),
+(10, 8, 'Paba', '2025-08-04 15:12:27'),
+(11, 1, 'Test Upazila', '2025-08-04 15:16:44'),
+(12, 1, 'Dhanmondi Upazila', '2025-08-04 15:19:41'),
+(13, 1, 'Gulshan Upazila', '2025-08-04 15:19:41'),
+(14, 2, 'Savar Upazila', '2025-08-04 15:19:41');
 
 -- --------------------------------------------------------
 
@@ -406,36 +493,42 @@ CREATE TABLE `users` (
   `email` varchar(100) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('admin','agent','worker','user') NOT NULL DEFAULT 'user',
-  `status` enum('active','inactive') DEFAULT 'active',
+  `status` enum('active','inactive','pending','email_pending','rejected') DEFAULT 'email_pending',
   `image` varchar(200) DEFAULT NULL,
   `reset_token` varchar(255) DEFAULT NULL,
   `reset_token_expiry` timestamp NULL DEFAULT NULL,
   `last_login` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `email_verified` tinyint(1) DEFAULT 0,
+  `email_verified_at` timestamp NULL DEFAULT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `status`, `image`, `reset_token`, `reset_token_expiry`, `last_login`, `created_at`, `updated_at`) VALUES
-(1, 'admin', NULL, '$2y$10$onwZeu03h9HcSY7fnNKYN./hS76D1zswa/TIUNqM92gq2kpLY9ePS', 'admin', 'active', NULL, NULL, NULL, NULL, '2025-08-02 18:14:04', '2025-08-02 18:14:04'),
-(2, 'john_doe', 'john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(3, 'jane_smith', 'jane@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(4, 'mike_wilson', 'mike@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(5, 'sarah_johnson', 'sarah@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(6, 'david_brown', 'david@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(7, 'electrician_alex', 'alex@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(8, 'plumber_bob', 'bob@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(9, 'cleaner_carol', 'carol@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(10, 'carpenter_dan', 'dan@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(11, 'painter_eve', 'eve@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(12, 'agent_frank', 'frank@agents.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(13, 'agent_grace', 'grace@agents.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(14, 'esteham', 'eshasan1287005@gmail.com', '$2y$10$mCrky7K5tSsVU8.4RZtcNeig40ZLjaVJf3miEONvd5YiYZUnzitEy', 'user', 'active', 'uploads/users/6890970b21c3a.jpg', NULL, NULL, NULL, '2025-08-04 11:18:35', '2025-08-04 11:18:35'),
-(15, 'agent', NULL, '$2y$10$skGR8DBw.BEGbhDMEpFQpenBQEacv.Z3tl7r6/M8ZZ0O7CrDX.pCq', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:52:09', '2025-08-04 11:52:09'),
-(22, 'aljabir', 'estahamulhasan@gmail.com', '$2y$10$SAbRI3LY7/cO3SoGzVS48.1pvZ9HHqo01kLJtzwXqFbw./D2hf5T.', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 12:23:20', '2025-08-04 12:23:20');
+INSERT INTO `users` (`id`, `username`, `email`, `password`, `role`, `status`, `image`, `reset_token`, `reset_token_expiry`, `last_login`, `created_at`, `updated_at`, `email_verified`, `email_verified_at`, `first_name`, `last_name`, `phone`) VALUES
+(1, 'admin', NULL, '$2y$10$onwZeu03h9HcSY7fnNKYN./hS76D1zswa/TIUNqM92gq2kpLY9ePS', 'admin', 'active', NULL, NULL, NULL, NULL, '2025-08-02 18:14:04', '2025-08-02 18:14:04', 0, NULL, NULL, NULL, NULL),
+(2, 'john_doe', 'john@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(3, 'jane_smith', 'jane@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(4, 'mike_wilson', 'mike@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(5, 'sarah_johnson', 'sarah@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(6, 'david_brown', 'david@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(7, 'electrician_alex', 'alex@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(8, 'plumber_bob', 'bob@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(9, 'cleaner_carol', 'carol@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(10, 'carpenter_dan', 'dan@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(11, 'painter_eve', 'eve@workers.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'worker', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(12, 'agent_frank', 'frank@agents.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(13, 'agent_grace', 'grace@agents.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08', 0, NULL, NULL, NULL, NULL),
+(15, 'agent', NULL, '$2y$10$skGR8DBw.BEGbhDMEpFQpenBQEacv.Z3tl7r6/M8ZZ0O7CrDX.pCq', 'agent', 'active', NULL, NULL, NULL, NULL, '2025-08-04 11:52:09', '2025-08-04 11:52:09', 0, NULL, NULL, NULL, NULL),
+(28, 'esteham', 'eshasan1287005@gmail.com', '$2y$10$TP5PX2qV8eCAi5bkJWyaLe8gyruSsa9PowkB.wvhdlNh7bXiB85Ha', 'user', 'active', 'uploads/users/68919ce40862d.jpg', NULL, NULL, NULL, '2025-08-05 05:55:48', '2025-08-05 05:56:25', 1, '2025-08-05 01:56:25', NULL, NULL, NULL),
+(29, 'esteham1', 'estahamulhasan@gmail.com', '$2y$10$LTAzCSBTZkK7fazXa1s8auZ/tH4vHKxZR7POlU2Uw01V4SDq/0SwW', 'agent', 'pending', 'uploads/users/6891efcd3b6a4.jpg', NULL, NULL, NULL, '2025-08-05 11:49:33', '2025-08-05 11:50:01', 1, '2025-08-05 07:50:01', NULL, NULL, NULL),
+(30, 'Delivaryman', 'xet.windsurf@gmail.com', '$2y$10$ZzJeovjWixQGzkf4uh.szOmtDdIbkr7wlWUZYaoXm22dPHYNPwOCi', 'worker', 'pending', 'uploads/users/6892001b441f7.png', NULL, NULL, NULL, '2025-08-05 12:59:07', '2025-08-05 16:34:14', 1, '2025-08-05 08:59:45', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -480,7 +573,7 @@ INSERT INTO `workers` (`id`, `user_id`, `zone_id`, `area_id`, `category_id`, `ph
 (3, 8, NULL, NULL, NULL, '+8801912345680', NULL, '0000-00-00', NULL, NULL, 'Uttara, Dhaka', 'House cleaning, Office cleaning, Deep cleaning', NULL, NULL, NULL, 3, 25.00, 'available', 'active', 4.90, 89, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
 (4, 9, NULL, NULL, NULL, '+8801612345681', NULL, '0000-00-00', NULL, NULL, 'Mirpur, Dhaka', 'Furniture repair, Cabinet installation, Wood work', NULL, NULL, NULL, 6, 40.00, 'busy', 'active', 4.70, 134, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
 (5, 10, NULL, NULL, NULL, '+8801512345682', NULL, '0000-00-00', NULL, NULL, 'Savar, Dhaka', 'Interior painting, Exterior painting, Wall design', NULL, NULL, NULL, 4, 35.00, 'available', 'active', 4.50, 98, NULL, '2025-08-04 11:10:08', '2025-08-04 11:10:08'),
-(12, 22, 2, 2, 1, '+8801723581023', NULL, '2025-08-04', 'Al Jabir', 'Hasan', 'Dhaka1204', 'Parpenter', '', '', '', 0, 0.00, 'available', 'active', 0.00, 0, NULL, '2025-08-04 12:23:20', '2025-08-04 12:23:20');
+(14, 30, 8, 16, 4, '01723581023', NULL, '2025-08-05', 'Spider', 'Hasan', 'Dhaka1204', 'N/A', '', '', '', 2, 200.00, 'available', 'active', 0.00, 0, NULL, '2025-08-05 12:59:13', '2025-08-05 16:31:54');
 
 -- --------------------------------------------------------
 
@@ -563,16 +656,16 @@ CREATE TABLE `zones` (
 --
 
 INSERT INTO `zones` (`id`, `upazila_id`, `name`, `created_at`) VALUES
-(1, 1, 'Dhanmondi 1', '2025-08-04 11:10:07'),
-(2, 1, 'Dhanmondi 2', '2025-08-04 11:10:07'),
-(3, 2, 'Gulshan 1', '2025-08-04 11:10:07'),
-(4, 2, 'Gulshan 2', '2025-08-04 11:10:07'),
-(5, 3, 'Uttara Sector 1', '2025-08-04 11:10:07'),
-(6, 3, 'Uttara Sector 3', '2025-08-04 11:10:07'),
-(7, 4, 'Mirpur 1', '2025-08-04 11:10:07'),
-(8, 4, 'Mirpur 2', '2025-08-04 11:10:07'),
-(9, 5, 'Savar Cantonment', '2025-08-04 11:10:07'),
-(10, 6, 'Narayanganj City', '2025-08-04 11:10:07');
+(1, 1, 'Dhanmondi Zone 1', '2025-08-04 15:12:27'),
+(2, 1, 'Dhanmondi Zone 2', '2025-08-04 15:12:27'),
+(3, 2, 'Gulshan Zone 1', '2025-08-04 15:12:27'),
+(4, 2, 'Gulshan Zone 2', '2025-08-04 15:12:27'),
+(5, 3, 'Uttara Zone 1', '2025-08-04 15:12:27'),
+(6, 3, 'Uttara Zone 2', '2025-08-04 15:12:27'),
+(7, 4, 'Mirpur Zone 1', '2025-08-04 15:12:27'),
+(8, 4, 'Mirpur Zone 2', '2025-08-04 15:12:27'),
+(9, 5, 'Gazipur Central Zone', '2025-08-04 15:12:27'),
+(10, 5, 'Gazipur Industrial Zone', '2025-08-04 15:12:27');
 
 --
 -- Indexes for dumped tables
@@ -583,8 +676,9 @@ INSERT INTO `zones` (`id`, `upazila_id`, `name`, `created_at`) VALUES
 --
 ALTER TABLE `agents`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`),
-  ADD KEY `assigned_zone_id` (`assigned_zone_id`);
+  ADD UNIQUE KEY `unique_agent_user` (`user_id`),
+  ADD KEY `zone_id` (`zone_id`),
+  ADD KEY `area_id` (`area_id`);
 
 --
 -- Indexes for table `areas`
@@ -624,11 +718,29 @@ ALTER TABLE `documents`
   ADD KEY `worker_id` (`worker_id`);
 
 --
+-- Indexes for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_email` (`user_id`,`email`),
+  ADD KEY `idx_email_type` (`email_type`),
+  ADD KEY `idx_status` (`status`);
+
+--
 -- Indexes for table `notifications`
 --
 ALTER TABLE `notifications`
   ADD PRIMARY KEY (`id`),
   ADD KEY `user_id` (`user_id`);
+
+--
+-- Indexes for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_email` (`user_id`,`email`),
+  ADD KEY `idx_otp_code` (`otp_code`),
+  ADD KEY `idx_expires_at` (`expires_at`);
 
 --
 -- Indexes for table `pricing_rules`
@@ -744,13 +856,13 @@ ALTER TABLE `zones`
 -- AUTO_INCREMENT for table `agents`
 --
 ALTER TABLE `agents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `areas`
 --
 ALTER TABLE `areas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -762,13 +874,13 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `districts`
 --
 ALTER TABLE `districts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `divisions`
 --
 ALTER TABLE `divisions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `documents`
@@ -777,10 +889,22 @@ ALTER TABLE `documents`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `pricing_rules`
@@ -828,19 +952,19 @@ ALTER TABLE `task_assignments`
 -- AUTO_INCREMENT for table `upazilas`
 --
 ALTER TABLE `upazilas`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `workers`
 --
 ALTER TABLE `workers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `worker_services`
@@ -858,7 +982,7 @@ ALTER TABLE `worker_zones`
 -- AUTO_INCREMENT for table `zones`
 --
 ALTER TABLE `zones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- Constraints for dumped tables
@@ -869,7 +993,8 @@ ALTER TABLE `zones`
 --
 ALTER TABLE `agents`
   ADD CONSTRAINT `agents_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `agents_ibfk_2` FOREIGN KEY (`assigned_zone_id`) REFERENCES `zones` (`id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `agents_ibfk_2` FOREIGN KEY (`zone_id`) REFERENCES `zones` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `agents_ibfk_3` FOREIGN KEY (`area_id`) REFERENCES `areas` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `areas`
@@ -890,10 +1015,22 @@ ALTER TABLE `documents`
   ADD CONSTRAINT `documents_ibfk_1` FOREIGN KEY (`worker_id`) REFERENCES `workers` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `email_logs`
+--
+ALTER TABLE `email_logs`
+  ADD CONSTRAINT `email_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `notifications`
 --
 ALTER TABLE `notifications`
   ADD CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `otp_verifications`
+--
+ALTER TABLE `otp_verifications`
+  ADD CONSTRAINT `otp_verifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `pricing_rules`
