@@ -1,0 +1,122 @@
+/* Agent Registration Form Styles */
+.agent-registration-form {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+/* Step Indicators */
+.step-indicator {
+  text-align: center;
+  position: relative;
+  flex: 1;
+  cursor: pointer;
+}
+
+.step-indicator:not(:last-child):after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background-color: #e9ecef;
+  z-index: 0;
+}
+
+.step-indicator.completed:not(:last-child):after {
+  background-color: #28a745;
+}
+
+.step-indicator.active .step-number {
+  background-color: #4361ee;
+  color: white;
+  border-color: #4361ee;
+}
+
+.step-indicator.completed .step-number {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.step-number {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  border: 2px solid #e9ecef;
+  position: relative;
+  z-index: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step-label {
+  font-size: 13px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.step-indicator.active .step-label {
+  color: #4361ee;
+  font-weight: 600;
+}
+
+.step-indicator.completed .step-label {
+  color: #28a745;
+}
+
+/* Form Styles */
+.form-control, .form-select {
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #4361ee;
+  box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+}
+
+/* Button Styles */
+.btn {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: #4361ee;
+  border-color: #4361ee;
+}
+
+.btn-primary:hover {
+  background-color: #3a56d4;
+  border-color: #3a56d4;
+}
+
+.btn-warning {
+  background-color: #f9a826;
+  border-color: #f9a826;
+  color: #fff;
+}
+
+.btn-warning:hover {
+  background-color: #e89a1a;
+  border-color: #e89a1a;
+  color: #fff;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .step-label {
+    font-size: 12px;
+  }
+  
+  .agent-registration-form {
+    padding: 15px;
+  }
+}
