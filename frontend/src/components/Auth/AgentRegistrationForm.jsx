@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import useLiveValidation from '../../hooks/useLiveValidation';
 import ValidationMessage from '../common/ValidationMessage';
 import { showFormSuccessToast, showErrorToast } from '../../utils/confirmationToast';
+import OTPVerification from './OTPVerification';
 
 const AgentRegistrationForm = ({ onClose, onBack }) => {
   const [formData, setFormData] = useState({
@@ -28,6 +29,8 @@ const AgentRegistrationForm = ({ onClose, onBack }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
   
   // Dropdown data
   const [zones, setZones] = useState([]);
@@ -227,12 +230,20 @@ const AgentRegistrationForm = ({ onClose, onBack }) => {
       );
 
       if (response.data.success) {
-        showFormSuccessToast('agent', 'register');
-        // Reset validation states
-        usernameValidation.reset();
-        emailValidation.reset();
-        phoneValidation.reset();
-        onClose();
+        if (response.data.requires_otp) {
+          // Show OTP verification modal
+          setRegisteredUser(response.data.data);
+          setShowOTPModal(true);
+          showFormSuccessToast('Registration successful! Please check your email for OTP verification.');
+        } else {
+          // Direct success (shouldn't happen with new flow)
+          showFormSuccessToast('agent', 'register');
+          // Reset validation states
+          usernameValidation.reset();
+          emailValidation.reset();
+          phoneValidation.reset();
+          onClose();
+        }
       } else {
         showErrorToast(response.data.message || 'Registration failed');
       }
@@ -242,6 +253,25 @@ const AgentRegistrationForm = ({ onClose, onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOTPVerificationSuccess = (userData) => {
+    // Reset validation states
+    usernameValidation.reset();
+    emailValidation.reset();
+    phoneValidation.reset();
+    
+    // Show success message - agents need admin approval
+    showFormSuccessToast('Email verified successfully! Your account is pending admin approval.');
+    
+    // Close both modals
+    setShowOTPModal(false);
+    onClose();
+  };
+
+  const handleOTPModalClose = () => {
+    setShowOTPModal(false);
+    setRegisteredUser(null);
   };
 
   return (
@@ -520,6 +550,14 @@ const AgentRegistrationForm = ({ onClose, onBack }) => {
           </Button>
         </div>
       </Form>
+
+      {/* OTP Verification Modal */}
+      <OTPVerification
+        show={showOTPModal}
+        onHide={handleOTPModalClose}
+        userData={registeredUser}
+        onVerificationSuccess={handleOTPVerificationSuccess}
+      />
     </div>
   );
 };

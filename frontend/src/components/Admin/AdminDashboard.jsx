@@ -45,6 +45,7 @@ import MessagesContent from "./pages/MessagesContent";
 import NotificationsContent from "./pages/NotificationsContent";
 import SettingsContent from "./pages/SettingsContent";
 import ServicesContent from "./pages/ServicesContent";
+import PendingUsersContent from "./pages/PendingUsersContent";
 
 const ModernAdminDashboard = () => {
   const { user, logout } = useAuth();
@@ -1201,6 +1202,8 @@ const ModernAdminDashboard = () => {
         return renderDashboard();
       case "users":
         return renderUsers();
+      case "pending-users":
+        return <PendingUsersContent />;
       case "workers":
         return renderWorkers();
       case "requests":

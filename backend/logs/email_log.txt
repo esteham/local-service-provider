@@ -1,0 +1,37 @@
+=== EMAIL SENT ===
+To: eshasan1287005@gmail.com
+Subject: Email Verification - OTP Code
+Time: 2025-08-05 07:45:47
+Content: 
+        
+        
+            
+                Email Verification
+                
+                Hi Esteham Hasan,
+                
+                Thank you for registering with Local Service Provider. To complete your registration, please verify your email address using the OTP code below:
+                
+                
+                    322879
+                
+                
+                Important:
+                
+                    This OTP is valid for 10 minutes only
+                    Do not share this code with anyone
+                    If you didn't request this verification, please ignore this email
+                
+                
+                If you have any questions, please contact our support team.
+                
+                
+                
+                    This is an automated email. Please do not reply to this message.
+                
+            
+        
+        
+        
+==================
+

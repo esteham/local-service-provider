@@ -1,12 +1,15 @@
 <?php
 
 require_once 'DB.php';
+require_once 'EmailService.php';
 
 class Auth {
     private $db;
+    private $emailService;
     
     public function __construct() {
         $this->db = DB::getInstance();
+        $this->emailService = new EmailService();
     }
     
     public function register($userData) {
@@ -42,13 +45,17 @@ class Auth {
         // Hash password
         $hashedPassword = password_hash($userData['password'], PASSWORD_DEFAULT);
         
+        // Determine initial status based on role
+        $initialStatus = 'email_pending'; // All users start with email pending
+        
         // Prepare user data for insertion
         $insertData = [
             'username' => $userData['username'],
             'email' => $userData['email'],
             'password' => $hashedPassword,
             'role' => $userData['role'],
-            'status' => 'active'
+            'status' => $initialStatus,
+            'email_verified' => false
         ];
         
         // Add optional fields if provided
@@ -59,15 +66,30 @@ class Auth {
         try {
             $userId = $this->db->insert('users', $insertData);
             
+            // Generate and send OTP
+            $otpCode = $this->emailService->generateOTP();
+            $this->emailService->storeOTP($userId, $userData['email'], $otpCode, 'registration');
+            
+            $userName = trim(($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? ''));
+            $emailResult = $this->emailService->sendOTPEmail($userId, $userData['email'], $otpCode, $userName);
+            
+            if (!$emailResult['success']) {
+                // If email fails, we still keep the user but log the error
+                error_log('OTP email failed for user ' . $userId . ': ' . $emailResult['message']);
+            }
+            
             return [
                 'success' => true,
-                'message' => 'User registered successfully',
+                'message' => 'Registration successful. Please check your email for the OTP verification code.',
                 'user_id' => $userId,
+                'requires_otp' => true,
                 'data' => [
                     'id' => $userId,
                     'username' => $userData['username'],
                     'email' => $userData['email'],
-                    'role' => $userData['role']
+                    'role' => $userData['role'],
+                    'status' => $initialStatus,
+                    'email_verified' => false
                 ]
             ];
         } catch (Exception $e) {
@@ -298,6 +320,177 @@ class Auth {
         } catch (Exception $e) {
             error_log('Password update failed: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Password update failed'];
+        }
+    }
+    
+    /**
+     * Verify OTP and activate user account
+     */
+    public function verifyOTP($userId, $otpCode) {
+        try {
+            // Get user details
+            $user = $this->db->fetch(
+                "SELECT * FROM users WHERE id = ?",
+                [$userId]
+            );
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+            
+            // Verify OTP
+            $otpResult = $this->emailService->verifyOTP($userId, $otpCode, 'registration');
+            
+            if (!$otpResult['success']) {
+                // If OTP is invalid, increment attempt count
+                if ($otpCode) {
+                    $this->emailService->incrementOTPAttempt($userId, $otpCode, 'registration');
+                }
+                return $otpResult;
+            }
+            
+            // Determine final status based on role
+            $finalStatus = 'active';
+            if (in_array($user['role'], ['worker', 'agent'])) {
+                $finalStatus = 'pending'; // Workers and agents need admin approval
+            }
+            
+            // Update user status and email verification
+            $this->db->update('users', [
+                'status' => $finalStatus,
+                'email_verified' => true,
+                'email_verified_at' => date('Y-m-d H:i:s')
+            ], ['id' => $userId]);
+            
+            $message = 'Email verified successfully.';
+            if ($finalStatus === 'pending') {
+                $message .= ' Your account is now pending admin approval.';
+            } else {
+                $message .= ' Your account is now active.';
+            }
+            
+            return [
+                'success' => true,
+                'message' => $message,
+                'data' => [
+                    'id' => $userId,
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'role' => $user['role'],
+                    'status' => $finalStatus,
+                    'email_verified' => true
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('OTP verification failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'OTP verification failed'];
+        }
+    }
+    
+    /**
+     * Resend OTP to user
+     */
+    public function resendOTP($userId) {
+        try {
+            // Get user details
+            $user = $this->db->fetch(
+                "SELECT * FROM users WHERE id = ?",
+                [$userId]
+            );
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+            
+            if ($user['email_verified']) {
+                return ['success' => false, 'message' => 'Email is already verified'];
+            }
+            
+            // Check if user can receive new OTP (rate limiting)
+            $recentOTP = $this->db->fetch(
+                "SELECT * FROM otp_verifications 
+                 WHERE user_id = ? AND otp_type = 'registration' 
+                 AND created_at > DATE_SUB(NOW(), INTERVAL 1 MINUTE)
+                 ORDER BY created_at DESC LIMIT 1",
+                [$userId]
+            );
+            
+            if ($recentOTP) {
+                return ['success' => false, 'message' => 'Please wait before requesting a new OTP'];
+            }
+            
+            // Generate and send new OTP
+            $otpCode = $this->emailService->generateOTP();
+            $this->emailService->storeOTP($userId, $user['email'], $otpCode, 'registration');
+            
+            $emailResult = $this->emailService->sendOTPEmail($userId, $user['email'], $otpCode, $user['username']);
+            
+            if (!$emailResult['success']) {
+                return ['success' => false, 'message' => 'Failed to send OTP email'];
+            }
+            
+            return ['success' => true, 'message' => 'OTP sent successfully'];
+            
+        } catch (Exception $e) {
+            error_log('Resend OTP failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to resend OTP'];
+        }
+    }
+    
+    /**
+     * Admin approve user (for workers and agents)
+     */
+    public function approveUser($userId, $adminId) {
+        try {
+            // Verify admin permissions
+            $admin = $this->db->fetch(
+                "SELECT role FROM users WHERE id = ? AND role = 'admin'",
+                [$adminId]
+            );
+            
+            if (!$admin) {
+                return ['success' => false, 'message' => 'Admin access required'];
+            }
+            
+            // Get user details
+            $user = $this->db->fetch(
+                "SELECT * FROM users WHERE id = ?",
+                [$userId]
+            );
+            
+            if (!$user) {
+                return ['success' => false, 'message' => 'User not found'];
+            }
+            
+            if (!$user['email_verified']) {
+                return ['success' => false, 'message' => 'User must verify email first'];
+            }
+            
+            if ($user['status'] !== 'pending') {
+                return ['success' => false, 'message' => 'User is not pending approval'];
+            }
+            
+            // Approve user
+            $this->db->update('users', [
+                'status' => 'active'
+            ], ['id' => $userId]);
+            
+            return [
+                'success' => true,
+                'message' => 'User approved successfully',
+                'data' => [
+                    'id' => $userId,
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'role' => $user['role'],
+                    'status' => 'active'
+                ]
+            ];
+            
+        } catch (Exception $e) {
+            error_log('User approval failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'User approval failed'];
         }
     }
 }
