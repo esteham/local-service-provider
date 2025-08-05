@@ -12,13 +12,23 @@ const Header = ({ onLoginClick }) => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // const isLoggedIn = user && ["admin", "agent", "worker"].includes(user.role);
   const isLoggedIn = !!user;
 
   useEffect(() => {
     fetchServices();
-  }, []);
+    
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [scrolled]);
 
   const fetchServices = async () => {
     try {
@@ -55,6 +65,18 @@ const Header = ({ onLoginClick }) => {
   };
 
   return (
+    <>
+    {/* Subheader */}
+      <div className={`subheader ${scrolled ? 'subheader-hidden' : ''}`}>
+        <Container>
+          <div className="subheader-text">
+              Local Service Provider - Connecting You to Quality Professional &nbsp; 
+              <span className="subheader-contact">Call us: +880 123-456-7890</span>         
+          </div>
+        </Container>
+      </div>
+
+      {/* Main Header */}
     <Navbar className="header" variant="dark" expand="lg" sticky="top">
       <Container>
         <Navbar.Brand as={Link} to="/" className="fw-bold">
@@ -176,7 +198,9 @@ const Header = ({ onLoginClick }) => {
         onHide={() => setShowRegistrationModal(false)} 
       />
     </Navbar>
+    </>
   );
 };
+
 
 export default Header;
