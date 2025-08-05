@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { FaArrowLeft, FaHammer, FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -257,7 +258,7 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       }
 
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/backend/api/auth/register.php`,
+        `${import.meta.env.VITE_API_URL}/backend/api/auth/worker_register.php`,
         submitData,
         {
           headers: {
