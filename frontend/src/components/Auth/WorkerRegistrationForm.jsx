@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
-import { FaArrowLeft, FaHammer, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaArrowLeft, FaHammer, FaEye, FaEyeSlash, FaArrowRight } from 'react-icons/fa';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import useLiveValidation from '../../hooks/useLiveValidation';
@@ -38,6 +38,7 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const [errors, setErrors] = useState({});
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [registeredUser, setRegisteredUser] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
   
   // Dropdown data
   const [categories, setCategories] = useState([]);
@@ -57,7 +58,6 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
 
   const fetchDropdownData = async () => {
     try {
-      // Fetch categories using public API
       const categoriesResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/backend/api/categories.php`
       );
@@ -65,7 +65,6 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
         setCategories(categoriesResponse.data.data);
       }
 
-      // Fetch zones using public location API
       const zonesResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/backend/api/locations.php?type=zones`
       );
@@ -73,7 +72,6 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
         setZones(zonesResponse.data.data);
       }
 
-      // Fetch services
       const servicesResponse = await axios.get(
         `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=services`
       );
@@ -91,7 +89,6 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
         `${import.meta.env.VITE_API_URL}/backend/api/locations.php?type=areas`
       );
       if (response.data.success) {
-        // Filter areas by zone_id
         const filteredAreas = response.data.data.filter(area => area.zone_id == zoneId);
         setAreas(filteredAreas);
       }
@@ -107,7 +104,6 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       [name]: value
     }));
 
-    // Trigger live validation for specific fields
     if (name === 'username') {
       usernameValidation.validate(value);
     } else if (name === 'email') {
@@ -116,13 +112,11 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       phoneValidation.validate(value);
     }
 
-    // Fetch areas when zone changes
     if (name === 'zone_id' && value) {
       fetchAreas(value);
       setFormData(prev => ({ ...prev, area_id: '' }));
     }
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -210,31 +204,46 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const validateStep = (step) => {
+    const stepErrors = {};
+    
+    switch(step) {
+      case 1:
+        if (!formData.first_name.trim()) stepErrors.first_name = 'First name is required';
+        if (!formData.last_name.trim()) stepErrors.last_name = 'Last name is required';
+        if (!formData.username.trim()) stepErrors.username = 'Username is required';
+        if (formData.username.length < 3) stepErrors.username = 'Username must be at least 3 characters';
+        if (!formData.category_id) stepErrors.category_id = 'Category is required';
+        break;
+      case 2:
+        if (!formData.phone.trim()) stepErrors.phone = 'Phone number is required';
+        if (!formData.email.trim()) stepErrors.email = 'Email is required';
+        if (!/\S+@\S+\.\S+/.test(formData.email)) stepErrors.email = 'Email is invalid';
+        if (!formData.address.trim()) stepErrors.address = 'Address is required';
+        if (!formData.zone_id) stepErrors.zone_id = 'Zone is required';
+        if (!formData.area_id) stepErrors.area_id = 'Area is required';
+        break;
+      case 3:
+        if (!formData.skills.trim()) stepErrors.skills = 'Skills are required';
+        if (!formData.hourly_rate || formData.hourly_rate <= 0) stepErrors.hourly_rate = 'Valid hourly rate is required';
+        if (selectedServices.length === 0) stepErrors.services = 'Please select at least one service';
+        break;
+      case 5:
+        if (!formData.password) stepErrors.password = 'Password is required';
+        if (formData.password.length < 6) stepErrors.password = 'Password must be at least 6 characters';
+        if (formData.password !== formData.confirmPassword) stepErrors.confirmPassword = 'Passwords do not match';
+        break;
+    }
+    
+    setErrors(stepErrors);
+    return Object.keys(stepErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check basic form validation
-    if (!validateForm()) {
-      return;
-    }
-
-    // Check live validation results
-    if (usernameValidation.exists) {
-      showErrorToast('Username is already taken. Please choose a different username.');
-      return;
-    }
-
-    if (emailValidation.exists) {
-      showErrorToast('Email is already registered. Please use a different email.');
-      return;
-    }
-
-    if (phoneValidation.exists) {
-      showErrorToast('Phone number is already registered. Please use a different phone number.');
-      return;
-    }
-
-    // Check if validation is still in progress
+    if (!validateForm()) return;
+    if (usernameValidation.exists || emailValidation.exists || phoneValidation.exists) return;
     if (usernameValidation.isChecking || emailValidation.isChecking || phoneValidation.isChecking) {
       showErrorToast('Please wait for validation to complete.');
       return;
@@ -245,17 +254,14 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
     try {
       const submitData = new FormData();
       
-      // Add form data
       Object.keys(formData).forEach(key => {
         if (key !== 'confirmPassword') {
           submitData.append(key, formData[key]);
         }
       });
 
-      // Add selected services
       submitData.append('service_ids', JSON.stringify(selectedServices));
 
-      // Add image if selected
       if (image) {
         submitData.append('image', image);
       }
@@ -272,14 +278,11 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
 
       if (response.data.success) {
         if (response.data.requires_otp) {
-          // Show OTP verification modal
           setRegisteredUser(response.data.data);
           setShowOTPModal(true);
           showFormSuccessToast('Registration successful! Please check your email for OTP verification.');
         } else {
-          // Direct success (shouldn't happen with new flow)
           showFormSuccessToast('worker', 'register');
-          // Reset validation states
           usernameValidation.reset();
           emailValidation.reset();
           phoneValidation.reset();
@@ -297,15 +300,10 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   };
 
   const handleOTPVerificationSuccess = (userData) => {
-    // Reset validation states
     usernameValidation.reset();
     emailValidation.reset();
     phoneValidation.reset();
-    
-    // Show success message - workers need admin approval
     showFormSuccessToast('Email verified successfully! Your account is pending admin approval.');
-    
-    // Close both modals
     setShowOTPModal(false);
     onClose();
   };
@@ -313,6 +311,20 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
   const handleOTPModalClose = () => {
     setShowOTPModal(false);
     setRegisteredUser(null);
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
+  const skipEmergencyContact = () => {
+    setCurrentStep(currentStep + 1);
   };
 
   return (
@@ -324,210 +336,264 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
         <h5 className="mb-0">Worker Registration</h5>
       </div>
 
+      <div className="d-flex mb-4">
+        {[1, 2, 3, 4, 5].map((step) => (
+          <div 
+            key={step}
+            className={`d-flex flex-column align-items-center ${currentStep >= step ? 'text-primary' : 'text-muted'}`}
+            style={{ width: '20%' }}
+          >
+            <div 
+              className={`rounded-circle mb-1 ${currentStep >= step ? 'bg-primary' : 'bg-light'}`}
+              style={{ 
+                width: '30px', 
+                height: '30px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                border: currentStep === step ? '2px solid #0d6efd' : 'none'
+              }}
+            >
+              {step}
+            </div>
+            <small className="text-center">
+              {step === 1 && 'Basic Info'}
+              {step === 2 && 'Contact'}
+              {step === 3 && 'Professional'}
+              {step === 4 && 'Emergency'}
+              {step === 5 && 'Security'}
+            </small>
+          </div>
+        ))}
+      </div>
+
       <Form onSubmit={handleSubmit}>
-        {/* Basic Information */}
-        <h6 className="text-success mb-3">Basic Information</h6>
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Username *</Form.Label>
-              <Form.Control
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                isInvalid={!!errors.username || usernameValidation.isValid === false}
-                isValid={usernameValidation.isValid === true}
-                placeholder="Enter username"
-              />
-              <Form.Control.Feedback type="invalid">
-                {errors.username}
-              </Form.Control.Feedback>
-              <ValidationMessage 
-                isChecking={usernameValidation.isChecking}
-                isValid={usernameValidation.isValid}
-                message={usernameValidation.message}
-              />
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Email *</Form.Label>
-              <Form.Control
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                isInvalid={!!errors.email || emailValidation.isValid === false}
-                isValid={emailValidation.isValid === true}
-                placeholder="Enter email"
-              />
-              <Form.Control.Feedback type="invalid">
-                {errors.email}
-              </Form.Control.Feedback>
-              <ValidationMessage 
-                isChecking={emailValidation.isChecking}
-                isValid={emailValidation.isValid}
-                message={emailValidation.message}
-              />
-            </Form.Group>
-          </Col>
-        </Row>
+        {/* Step 1: Basic Information */}
+        {currentStep === 1 && (
+          <>
+            <h6 className="text-success mb-3">Basic Information</h6>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>First Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    isInvalid={!!errors.first_name}
+                    placeholder="Enter first name"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.first_name}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Last Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    isInvalid={!!errors.last_name}
+                    placeholder="Enter last name"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.last_name}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
 
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>First Name *</Form.Label>
-              <Form.Control
-                type="text"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                isInvalid={!!errors.first_name}
-                placeholder="Enter first name"
-              />
-              <Form.Control.Feedback type="invalid">
-                {errors.first_name}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Last Name *</Form.Label>
-              <Form.Control
-                type="text"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                isInvalid={!!errors.last_name}
-                placeholder="Enter last name"
-              />
-              <Form.Control.Feedback type="invalid">
-                {errors.last_name}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-        </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Username *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    isInvalid={!!errors.username || usernameValidation.isValid === false}
+                    isValid={usernameValidation.isValid === true}
+                    placeholder="Enter username"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.username}
+                  </Form.Control.Feedback>
+                  <ValidationMessage 
+                    isChecking={usernameValidation.isChecking}
+                    isValid={usernameValidation.isValid}
+                    message={usernameValidation.message}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Category *</Form.Label>
+                  <Form.Select
+                    name="category_id"
+                    value={formData.category_id}
+                    onChange={handleChange}
+                    isInvalid={!!errors.category_id}
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.category_id}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+          </>
+        )}
 
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Phone Number *</Form.Label>
-              <Form.Control
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                isInvalid={!!errors.phone || phoneValidation.isValid === false}
-                isValid={phoneValidation.isValid === true}
-                placeholder="Enter phone number"
-              />
-              <Form.Control.Feedback type="invalid">
-                {errors.phone}
-              </Form.Control.Feedback>
-              <ValidationMessage 
-                isChecking={phoneValidation.isChecking}
-                isValid={phoneValidation.isValid}
-                message={phoneValidation.message}
-              />
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Category</Form.Label>
-              <Form.Select
-                name="category_id"
-                value={formData.category_id}
-                onChange={handleChange}
-              >
-                <option value="">Select Category</option>
-                {categories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Col>
-        </Row>
+        {/* Step 2: Contact Information */}
+        {currentStep === 2 && (
+          <>
+            <h6 className="text-success mb-3">Contact Information</h6>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Phone Number *</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    isInvalid={!!errors.phone || phoneValidation.isValid === false}
+                    isValid={phoneValidation.isValid === true}
+                    placeholder="Enter phone number"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.phone}
+                  </Form.Control.Feedback>
+                  <ValidationMessage 
+                    isChecking={phoneValidation.isChecking}
+                    isValid={phoneValidation.isValid}
+                    message={phoneValidation.message}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Email *</Form.Label>
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    isInvalid={!!errors.email || emailValidation.isValid === false}
+                    isValid={emailValidation.isValid === true}
+                    placeholder="Enter email"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.email}
+                  </Form.Control.Feedback>
+                  <ValidationMessage 
+                    isChecking={emailValidation.isChecking}
+                    isValid={emailValidation.isValid}
+                    message={emailValidation.message}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Address *</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={2}
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            isInvalid={!!errors.address}
-            placeholder="Enter your address"
-          />
-          <Form.Control.Feedback type="invalid">
-            {errors.address}
-          </Form.Control.Feedback>
-        </Form.Group>
-
-        {/* Location Information */}
-        <h6 className="text-success mb-3">Location Information</h6>
-        <Row>
-          <Col md={6}>
             <Form.Group className="mb-3">
-              <Form.Label>Zone</Form.Label>
-              <Form.Select
-                name="zone_id"
-                value={formData.zone_id}
-                onChange={handleChange}
-              >
-                <option value="">Select Zone</option>
-                {zones.map(zone => (
-                  <option key={zone.id} value={zone.id}>
-                    {zone.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Area</Form.Label>
-              <Form.Select
-                name="area_id"
-                value={formData.area_id}
-                onChange={handleChange}
-                disabled={!formData.zone_id}
-              >
-                <option value="">Select Area</option>
-                {areas.map(area => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Col>
-        </Row>
-
-        {/* Professional Information */}
-        <h6 className="text-success mb-3">Professional Information</h6>
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Skills *</Form.Label>
+              <Form.Label>Address *</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={2}
-                name="skills"
-                value={formData.skills}
+                name="address"
+                value={formData.address}
                 onChange={handleChange}
-                isInvalid={!!errors.skills}
-                placeholder="Describe your skills and expertise"
+                isInvalid={!!errors.address}
+                placeholder="Enter your address"
               />
               <Form.Control.Feedback type="invalid">
-                {errors.skills}
+                {errors.address}
               </Form.Control.Feedback>
             </Form.Group>
-          </Col>
-          <Col md={6}>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Zone *</Form.Label>
+                  <Form.Select
+                    name="zone_id"
+                    value={formData.zone_id}
+                    onChange={handleChange}
+                    isInvalid={!!errors.zone_id}
+                  >
+                    <option value="">Select Zone</option>
+                    {zones.map(zone => (
+                      <option key={zone.id} value={zone.id}>
+                        {zone.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.zone_id}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Area *</Form.Label>
+                  <Form.Select
+                    name="area_id"
+                    value={formData.area_id}
+                    onChange={handleChange}
+                    disabled={!formData.zone_id}
+                    isInvalid={!!errors.area_id}
+                  >
+                    <option value="">Select Area</option>
+                    {areas.map(area => (
+                      <option key={area.id} value={area.id}>
+                        {area.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.area_id}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+          </>
+        )}
+
+        {/* Step 3: Professional Information */}
+        {currentStep === 3 && (
+          <>
+            <h6 className="text-success mb-3">Professional Information</h6>
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Skills *</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    name="skills"
+                    value={formData.skills}
+                    onChange={handleChange}
+                    isInvalid={!!errors.skills}
+                    placeholder="Describe your skills and expertise"
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.skills}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -560,168 +626,197 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
                 </Form.Group>
               </Col>
             </Row>
-          </Col>
-        </Row>
 
-        {/* Services */}
-        <Form.Group className="mb-3">
-          <Form.Label>Services Offered *</Form.Label>
-          <div className="border rounded p-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <Form.Group className="mb-3">
+              <Form.Label>Services Offered *</Form.Label>
+              <div className="border rounded p-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                <Row>
+                  {services.map(service => (
+                    <Col md={6} key={service.id}>
+                      <Form.Check
+                        type="checkbox"
+                        id={`service-${service.id}`}
+                        label={service.name}
+                        checked={selectedServices.includes(service.id)}
+                        onChange={() => handleServiceToggle(service.id)}
+                        className="mb-2"
+                      />
+                    </Col>
+                  ))}
+                </Row>
+              </div>
+              {errors.services && (
+                <div className="text-danger small mt-1">{errors.services}</div>
+              )}
+            </Form.Group>
+          </>
+        )}
+
+        {/* Step 4: Emergency Contact */}
+        {currentStep === 4 && (
+          <>
+            <h6 className="text-success mb-3">Emergency Contact (Optional)</h6>
             <Row>
-              {services.map(service => (
-                <Col md={6} key={service.id}>
-                  <Form.Check
-                    type="checkbox"
-                    id={`service-${service.id}`}
-                    label={service.name}
-                    checked={selectedServices.includes(service.id)}
-                    onChange={() => handleServiceToggle(service.id)}
-                    className="mb-2"
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Emergency Contact Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="emergency_name"
+                    value={formData.emergency_name}
+                    onChange={handleChange}
+                    placeholder="Contact name"
                   />
-                </Col>
-              ))}
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Emergency Phone</Form.Label>
+                  <Form.Control
+                    type="tel"
+                    name="emergency_phone"
+                    value={formData.emergency_phone}
+                    onChange={handleChange}
+                    placeholder="Contact phone"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Relationship</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="emergency_relation"
+                    value={formData.emergency_relation}
+                    onChange={handleChange}
+                    placeholder="e.g., Spouse, Parent"
+                  />
+                </Form.Group>
+              </Col>
             </Row>
-          </div>
-          {errors.services && (
-            <div className="text-danger small mt-1">{errors.services}</div>
-          )}
-        </Form.Group>
+          </>
+        )}
 
-        {/* Emergency Contact */}
-        <h6 className="text-success mb-3">Emergency Contact</h6>
-        <Row>
-          <Col md={4}>
-            <Form.Group className="mb-3">
-              <Form.Label>Emergency Contact Name</Form.Label>
-              <Form.Control
-                type="text"
-                name="emergency_name"
-                value={formData.emergency_name}
-                onChange={handleChange}
-                placeholder="Contact name"
-              />
-            </Form.Group>
-          </Col>
-          <Col md={4}>
-            <Form.Group className="mb-3">
-              <Form.Label>Emergency Phone</Form.Label>
-              <Form.Control
-                type="tel"
-                name="emergency_phone"
-                value={formData.emergency_phone}
-                onChange={handleChange}
-                placeholder="Contact phone"
-              />
-            </Form.Group>
-          </Col>
-          <Col md={4}>
-            <Form.Group className="mb-3">
-              <Form.Label>Relationship</Form.Label>
-              <Form.Control
-                type="text"
-                name="emergency_relation"
-                value={formData.emergency_relation}
-                onChange={handleChange}
-                placeholder="e.g., Spouse, Parent"
-              />
-            </Form.Group>
-          </Col>
-        </Row>
-
-        {/* Password */}
-        <h6 className="text-success mb-3">Account Security</h6>
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Password *</Form.Label>
-              <div className="position-relative">
-                <Form.Control
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  isInvalid={!!errors.password}
-                  placeholder="Enter password"
-                />
-                <Button
-                  variant="link"
-                  className="position-absolute end-0 top-50 translate-middle-y border-0 bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ zIndex: 10 }}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </Button>
-              </div>
-              <Form.Control.Feedback type="invalid">
-                {errors.password}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Confirm Password *</Form.Label>
-              <div className="position-relative">
-                <Form.Control
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  isInvalid={!!errors.confirmPassword}
-                  placeholder="Confirm password"
-                />
-                <Button
-                  variant="link"
-                  className="position-absolute end-0 top-50 translate-middle-y border-0 bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{ zIndex: 10 }}
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </Button>
-              </div>
-              <Form.Control.Feedback type="invalid">
-                {errors.confirmPassword}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Col>
-        </Row>
-
-        {/* Profile Image */}
-        <Form.Group className="mb-3">
-          <Form.Label>Profile Image</Form.Label>
-          <Form.Control
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-          />
-          {imagePreview && (
-            <div className="mt-2">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
-              />
+        {/* Step 5: Account Security */}
+        {currentStep === 5 && (
+          <>
+            <h6 className="text-success mb-3">Account Security</h6>
+            <div className="alert alert-info mb-3">
+              <strong>Username:</strong> {formData.username}
             </div>
-          )}
-        </Form.Group>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Password *</Form.Label>
+                  <div className="position-relative">
+                    <Form.Control
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      isInvalid={!!errors.password}
+                      placeholder="Enter password"
+                    />
+                    <Button
+                      variant="link"
+                      className="position-absolute end-0 top-50 translate-middle-y border-0 bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ zIndex: 10 }}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </div>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.password}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Confirm Password *</Form.Label>
+                  <div className="position-relative">
+                    <Form.Control
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      isInvalid={!!errors.confirmPassword}
+                      placeholder="Confirm password"
+                    />
+                    <Button
+                      variant="link"
+                      className="position-absolute end-0 top-50 translate-middle-y border-0 bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={{ zIndex: 10 }}
+                    >
+                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                    </Button>
+                  </div>
+                  <Form.Control.Feedback type="invalid">
+                    {errors.confirmPassword}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
 
-        <div className="d-flex justify-content-end gap-2">
-          <Button variant="secondary" onClick={onBack} disabled={loading}>
-            Back
-          </Button>
-          <Button type="submit" variant="success" disabled={loading}>
-            {loading ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Registering...
-              </>
-            ) : (
-              'Register as Worker'
-            )}
-          </Button>
+            <Form.Group className="mb-3">
+              <Form.Label>Profile Image (Optional)</Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }}
+                  />
+                </div>
+              )}
+            </Form.Group>
+          </>
+        )}
+
+        <div className="d-flex justify-content-between mt-4">
+          {currentStep > 1 ? (
+            <Button variant="outline-secondary" onClick={prevStep}>
+              <FaArrowLeft className="me-1" /> Back
+            </Button>
+          ) : (
+            <Button variant="outline-secondary" onClick={onBack}>
+              <FaArrowLeft className="me-1" /> Cancel
+            </Button>
+          )}
+
+          {currentStep < 5 ? (
+            <div>
+              {currentStep === 4 && (
+                <Button variant="outline-primary" onClick={skipEmergencyContact} className="me-2">
+                  Skip
+                </Button>
+              )}
+              <Button variant="primary" onClick={nextStep}>
+                Next <FaArrowRight className="ms-1" />
+              </Button>
+            </div>
+          ) : (
+            <Button type="submit" variant="success" disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner size="sm" className="me-2" />
+                  Registering...
+                </>
+              ) : (
+                'Complete Registration'
+              )}
+            </Button>
+          )}
         </div>
       </Form>
 
-      {/* OTP Verification Modal */}
       <OTPVerification
         show={showOTPModal}
         onHide={handleOTPModalClose}
