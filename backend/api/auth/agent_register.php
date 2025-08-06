@@ -26,14 +26,14 @@ try {
 
     $imagePath = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../../uploads/users/';
+        $uploadDir = '../../assets/uploads/users/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
         $fileExtension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
         $fileName = uniqid() . '.' . $fileExtension;
         $imagePath = $uploadDir . $fileName;
         if (move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
-            $imagePath = 'uploads/users/' . $fileName;
+            $imagePath = '/assets/uploads/users/' . $fileName;
         }
     }
 

@@ -43,7 +43,7 @@ try {
     // Handle file upload if present
     $imagePath = null;
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $uploadDir = '../../uploads/users/';
+        $uploadDir = '../../assets/uploads/users/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -53,7 +53,7 @@ try {
         $imagePath = $uploadDir . $fileName;
         
         if (move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
-            $imagePath = 'uploads/users/' . $fileName; // Store relative path
+            $imagePath = '/assets/uploads/users/' . $fileName; // Store relative path
         } else {
             $imagePath = null;
         }
