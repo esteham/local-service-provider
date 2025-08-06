@@ -67,12 +67,17 @@ const ModernAdminDashboard = () => {
   const [showDivisionEditModal, setShowDivisionEditModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showUserEditModal, setShowUserEditModal] = useState(false);
+  const [showRequestDetailsModal, setShowRequestDetailsModal] = useState(false);
+  const [showWorkerAssignModal, setShowWorkerAssignModal] = useState(false);
 
   // Edit states
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingDivision, setEditingDivision] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [editingWorker, setEditingWorker] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedWorker, setSelectedWorker] = useState('');
+  const [assignmentNotes, setAssignmentNotes] = useState('');
 
   // Filter states
   const [requestFilter, setRequestFilter] = useState("all");
@@ -546,24 +551,44 @@ const ModernAdminDashboard = () => {
 
   // Service Request Operations
   const handleViewRequestDetails = (request) => {
-    // Navigate to request details or show request details modal
-    toast.info(`Viewing details for request #${request.id}`);
+    setSelectedRequest(request);
+    setShowRequestDetailsModal(true);
   };
 
   const handleManageRequest = async (requestId, action) => {
     try {
-      const response = await axios.post(
-        `${BASE_URL}/backend/api/admin/manage-request.php`,
+      let response;
+      
+      if (action === 'assign') {
+        // For assign action, we need to show worker assignment modal
+        const request = serviceRequests.find(r => r.id === requestId);
+        setSelectedRequest(request);
+        setShowWorkerAssignModal(true);
+        return;
+      }
+      
+      // For other actions, update the status
+      const statusMap = {
+        'reject': 'cancelled',
+        'complete': 'completed',
+        'approve': 'assigned'
+      };
+      
+      const newStatus = statusMap[action] || action;
+      
+      response = await axios.put(
+        `${BASE_URL}/backend/api/admin/service-requests.php?id=${requestId}`,
         {
-          requestId,
-          action,
+          action: 'update_status',
+          status: newStatus
         },
         {
           withCredentials: true,
         }
       );
+      
       if (response.data.success) {
-        toast.success(`Request ${action} successfully`);
+        toast.success(`Request ${action}ed successfully`);
         loadServiceRequests();
       } else {
         toast.error(response.data.message || `Failed to ${action} request`);
@@ -574,10 +599,57 @@ const ModernAdminDashboard = () => {
     }
   };
 
+  const handleAssignWorker = async () => {
+    if (!selectedWorker) {
+      toast.error('Please select a worker');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/backend/api/admin/assign_worker.php`,
+        {
+          request_id: selectedRequest.id,
+          worker_id: selectedWorker,
+          notes: assignmentNotes
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.data.success) {
+        toast.success('Worker assigned successfully');
+        setShowWorkerAssignModal(false);
+        setSelectedWorker('');
+        setAssignmentNotes('');
+        setSelectedRequest(null);
+        loadServiceRequests();
+      } else {
+        toast.error(response.data.message || 'Failed to assign worker');
+      }
+    } catch (error) {
+      console.error('Failed to assign worker:', error);
+      toast.error('Failed to assign worker');
+    }
+  };
+
   // Modal close handlers
   const handleCloseWorkerModal = () => {
     setShowWorkerModal(false);
-    loadWorkers(); // Refresh workers list
+    setEditingWorker(null);
+  };
+
+  const handleCloseRequestDetailsModal = () => {
+    setShowRequestDetailsModal(false);
+    setSelectedRequest(null);
+  };
+
+  const handleCloseWorkerAssignModal = () => {
+    setShowWorkerAssignModal(false);
+    setSelectedRequest(null);
+    setSelectedWorker('');
+    setAssignmentNotes('');
   };
 
   const handleCloseCategoryModal = () => {
@@ -1347,6 +1419,149 @@ const ModernAdminDashboard = () => {
         user={editingUser}
       />
 
+      {/* Service Request Details Modal */}
+      {showRequestDetailsModal && selectedRequest && (
+        <div className="modal-overlay" onClick={handleCloseRequestDetailsModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Service Request Details</h3>
+              <button className="close-btn" onClick={handleCloseRequestDetailsModal}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="request-details-grid">
+                <div className="detail-group">
+                  <label>Request ID:</label>
+                  <span>#{selectedRequest.id}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Service:</label>
+                  <span>{selectedRequest.service_name}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Customer:</label>
+                  <span>{selectedRequest.customer_name}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Phone:</label>
+                  <span>{selectedRequest.phone}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Address:</label>
+                  <span>{selectedRequest.address}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Status:</label>
+                  <span className={`status-badge status-${selectedRequest.status}`}>
+                    {selectedRequest.status}
+                  </span>
+                </div>
+                <div className="detail-group">
+                  <label>Price:</label>
+                  <span className="price-amount">${selectedRequest.price}</span>
+                </div>
+                <div className="detail-group">
+                  <label>Requested Date:</label>
+                  <span>{new Date(selectedRequest.requested_date).toLocaleDateString()}</span>
+                </div>
+                {selectedRequest.description && (
+                  <div className="detail-group full-width">
+                    <label>Description:</label>
+                    <p>{selectedRequest.description}</p>
+                  </div>
+                )}
+                {selectedRequest.worker_name && (
+                  <div className="detail-group">
+                    <label>Assigned Worker:</label>
+                    <span>{selectedRequest.worker_name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={handleCloseRequestDetailsModal}>
+                Close
+              </button>
+              {selectedRequest.status === 'pending' && (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => {
+                    handleCloseRequestDetailsModal();
+                    handleManageRequest(selectedRequest.id, 'assign');
+                  }}
+                >
+                  Assign Worker
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Worker Assignment Modal */}
+      {showWorkerAssignModal && selectedRequest && (
+        <div className="modal-overlay" onClick={handleCloseWorkerAssignModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Assign Worker to Request #{selectedRequest.id}</h3>
+              <button className="close-btn" onClick={handleCloseWorkerAssignModal}>
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="request-summary">
+                <h4>{selectedRequest.service_name}</h4>
+                <p><strong>Customer:</strong> {selectedRequest.customer_name}</p>
+                <p><strong>Address:</strong> {selectedRequest.address}</p>
+                <p><strong>Price:</strong> ${selectedRequest.price}</p>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="worker-select">Select Worker:</label>
+                <select 
+                  id="worker-select"
+                  value={selectedWorker} 
+                  onChange={(e) => setSelectedWorker(e.target.value)}
+                  className="form-control"
+                >
+                  <option value="">Choose a worker...</option>
+                  {workers.filter(w => w.status === 'active').map(worker => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name} - {worker.specialization}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="assignment-notes">Assignment Notes (Optional):</label>
+                <textarea 
+                  id="assignment-notes"
+                  value={assignmentNotes}
+                  onChange={(e) => setAssignmentNotes(e.target.value)}
+                  className="form-control"
+                  rows="3"
+                  placeholder="Add any special instructions or notes for the worker..."
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={handleCloseWorkerAssignModal}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleAssignWorker}
+                disabled={!selectedWorker}
+              >
+                Assign Worker
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .admin-dashboard-content {
           max-width: 1400px;
@@ -1774,6 +1989,215 @@ const ModernAdminDashboard = () => {
 
           .filter-tabs {
             justify-content: center;
+          }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          max-width: 600px;
+          width: 90%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          color: #1f2937;
+          font-size: 1.25rem;
+          font-weight: 600;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 0.5rem;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        .modal-body {
+          padding: 1.5rem;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          padding: 1.5rem;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .request-details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+        }
+
+        .detail-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .detail-group.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .detail-group label {
+          font-weight: 600;
+          color: #374151;
+          font-size: 0.875rem;
+        }
+
+        .detail-group span,
+        .detail-group p {
+          color: #6b7280;
+          margin: 0;
+        }
+
+        .price-amount {
+          color: #059669 !important;
+          font-weight: 600 !important;
+          font-size: 1.1rem !important;
+        }
+
+        .request-summary {
+          background: #f8fafc;
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+        }
+
+        .request-summary h4 {
+          margin: 0 0 0.5rem 0;
+          color: #1f2937;
+        }
+
+        .request-summary p {
+          margin: 0.25rem 0;
+          color: #6b7280;
+          font-size: 0.875rem;
+        }
+
+        .form-group {
+          margin-bottom: 1rem;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 0.75rem;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn-secondary {
+          background: #6b7280;
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+          background: #4b5563;
+        }
+
+        .btn-primary:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+        }
+
+        .btn-primary:disabled:hover {
+          background: #9ca3af;
+          transform: none;
+        }
+
+        .status-pending {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .status-assigned {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .status-in_progress {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .status-completed {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .status-cancelled {
+          background: #f3f4f6;
+          color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+          .modal-content {
+            width: 95%;
+            margin: 1rem;
+          }
+
+          .request-details-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .modal-footer {
+            flex-direction: column;
           }
         }
       `}</style>

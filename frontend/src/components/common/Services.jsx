@@ -25,6 +25,8 @@ const Services = () => {
     searchQuery: '',
     selectedCategory: '',
     showDropdown: false,
+    zones: [],
+    areas: [],
     bookingData: {
       name: '',
       email: '',
@@ -32,7 +34,9 @@ const Services = () => {
       address: '',
       preferred_date: '',
       preferred_time: '',
-      notes: ''
+      notes: '',
+      zone_id: '',
+      area_id: ''
     }
   });
 
@@ -115,12 +119,39 @@ const Services = () => {
       if (response.data.success) {
         setState(prev => ({ ...prev, services: response.data.data, loading: false }));
       } else {
-        setState(prev => ({ ...prev, error: response.data.message || 'Failed to load services', loading: false }));
+        setState(prev => ({ ...prev, error: response.data.message, loading: false }));
       }
     } catch (error) {
       console.error('Error fetching services:', error);
       setState(prev => ({ ...prev, error: 'Failed to load services', loading: false }));
-      toast.error('Failed to load services');
+    }
+  }, []);
+
+  const fetchZones = useCallback(async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/admin/locations.php?type=zones`);
+      if (response.data.success) {
+        setState(prev => ({ ...prev, zones: response.data.data }));
+      }
+    } catch (error) {
+      console.error('Error fetching zones:', error);
+    }
+  }, []);
+
+  const fetchAreas = useCallback(async (zoneId) => {
+    if (!zoneId) {
+      setState(prev => ({ ...prev, areas: [] }));
+      return;
+    }
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/admin/locations.php?type=areas`);
+      if (response.data.success) {
+        // Filter areas by zone_id
+        const filteredAreas = response.data.data.filter(area => area.zone_id == zoneId);
+        setState(prev => ({ ...prev, areas: filteredAreas }));
+      }
+    } catch (error) {
+      console.error('Error fetching areas:', error);
     }
   }, []);
 
@@ -173,15 +204,40 @@ const Services = () => {
 
   const handleBookingSubmit = useCallback(async (e) => {
     e.preventDefault();
+    
+    if (!state.selectedService) {
+      toast.error('Please select a service first');
+      return;
+    }
+
+    // Validate required fields
+    const { name, email, phone, address, preferred_date, zone_id, area_id } = state.bookingData;
+    if (!name || !email || !phone || !address || !preferred_date || !zone_id || !area_id) {
+      toast.error('Please fill in all required fields including zone and area');
+      return;
+    }
+
     try {
+      const bookingPayload = {
+        service_id: state.selectedService.id,
+        title: `${state.selectedService.name} Service Request`,
+        description: state.bookingData.notes || `Service request for ${state.selectedService.name}`,
+        contact_name: state.bookingData.name,
+        contact_phone: state.bookingData.phone,
+        contact_email: state.bookingData.email,
+        address: state.bookingData.address,
+        zone_id: state.bookingData.zone_id,
+        area_id: state.bookingData.area_id,
+        scheduled_at: `${state.bookingData.preferred_date} ${state.bookingData.preferred_time || '09:00'}`,
+        urgency: 'normal'
+      };
+
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/backend/api/user/request_service.php`,
-        {
-          service_id: state.selectedService.id,
-          ...state.bookingData
-        }
+        bookingPayload,
+        { withCredentials: true }
       );
-      
+
       if (response.data.success) {
         toast.success('Service request submitted successfully!');
         setState(prev => ({
@@ -194,7 +250,9 @@ const Services = () => {
             address: '',
             preferred_date: '',
             preferred_time: '',
-            notes: ''
+            notes: '',
+            zone_id: '',
+            area_id: ''
           }
         }));
       } else {
@@ -202,7 +260,7 @@ const Services = () => {
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
-      toast.error('Failed to submit service request');
+      toast.error('Failed to submit service request. Please try again.');
     }
   }, [state.selectedService, state.bookingData]);
 
@@ -215,7 +273,21 @@ const Services = () => {
         [name]: value
       }
     }));
-  }, []);
+
+    // If zone is changed, fetch areas for that zone
+    if (name === 'zone_id') {
+      fetchAreas(value);
+      // Reset area selection when zone changes
+      setState(prev => ({
+        ...prev,
+        bookingData: {
+          ...prev.bookingData,
+          zone_id: value,
+          area_id: ''
+        }
+      }));
+    }
+  }, [fetchAreas]);
 
   const handleTabChange = useCallback((tab) => {
     setState(prev => ({ 
@@ -254,6 +326,10 @@ const Services = () => {
   // Effects
   useEffect(() => {
     fetchServices();
+    fetchZones();
+  }, [fetchServices, fetchZones]);
+
+  useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const serviceId = urlParams.get('service');
     if (serviceId) {
@@ -626,6 +702,49 @@ const Services = () => {
                       required
                       aria-required="true"
                     />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              {/* Zone and Area Selection */}
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Zone *</Form.Label>
+                    <Form.Select
+                      name="zone_id"
+                      value={state.bookingData.zone_id}
+                      onChange={handleInputChange}
+                      required
+                      aria-required="true"
+                    >
+                      <option value="">Select Zone</option>
+                      {state.zones.map(zone => (
+                        <option key={zone.id} value={zone.id}>
+                          {zone.name}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Area *</Form.Label>
+                    <Form.Select
+                      name="area_id"
+                      value={state.bookingData.area_id}
+                      onChange={handleInputChange}
+                      required
+                      aria-required="true"
+                      disabled={!state.bookingData.zone_id}
+                    >
+                      <option value="">Select Area</option>
+                      {state.areas.map(area => (
+                        <option key={area.id} value={area.id}>
+                          {area.name}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 </Col>
               </Row>

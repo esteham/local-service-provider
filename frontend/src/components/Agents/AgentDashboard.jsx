@@ -20,6 +20,7 @@ import DashboardLayout from '../common/DashboardLayout';
 import DashboardSidebar from '../common/DashboardSidebar';
 import StatCard from '../common/StatCard';
 import ServiceRequestCard from '../common/ServiceRequestCard';
+import ServiceRequestsContent from './pages/ServiceRequestsContent';
 
 const AgentDashboard = () => {
   const { user, logout } = useAuth();
@@ -29,6 +30,7 @@ const AgentDashboard = () => {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     loadDashboardData();
@@ -39,10 +41,10 @@ const AgentDashboard = () => {
     try {
       // Load agent-specific data
       const [statsRes, requestsRes, workersRes, notificationsRes] = await Promise.all([
-        axios.get('/api/agents/stats.php'),
-        axios.get('/api/agents/service-requests.php'),
-        axios.get('/api/agents/workers.php'),
-        axios.get('/api/agents/notifications.php')
+        axios.get(`${BASE_URL}/backend/api/agents/stats.php`),
+        axios.get(`${BASE_URL}/backend/api/agents/service-requests.php`),
+        axios.get(`${BASE_URL}/backend/api/agents/workers.php`),
+        axios.get(`${BASE_URL}/backend/api/agents/notifications.php`)
       ]);
 
       if (statsRes.data.success) {
@@ -188,7 +190,7 @@ const AgentDashboard = () => {
       case 'dashboard':
         return renderDashboard();
       case 'requests':
-        return renderRequests();
+        return <ServiceRequestsContent />;
       case 'workers':
         return <div><h3>Worker Management</h3><p>Worker management features coming soon...</p></div>;
       case 'assignments':

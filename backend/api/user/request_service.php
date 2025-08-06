@@ -35,7 +35,7 @@ if (!$data) {
 }
 
 // Required fields validation
-$requiredFields = ['service_id', 'zone_id', 'title', 'description', 'address', 'contact_name', 'contact_phone'];
+$requiredFields = ['service_id', 'area_id', 'title', 'description', 'address', 'contact_name', 'contact_phone'];
 foreach ($requiredFields as $field) {
     if (empty($data[$field])) {
         echo json_encode(['success' => false, 'message' => ucfirst(str_replace('_', ' ', $field)) . ' is required']);
@@ -45,7 +45,7 @@ foreach ($requiredFields as $field) {
 
 // Sanitize and validate data
 $serviceId = intval($data['service_id']);
-$zoneId = intval($data['zone_id']);
+$areaId = intval($data['area_id']);
 $title = trim($data['title']);
 $description = trim($data['description']);
 $address = trim($data['address']);
@@ -91,12 +91,13 @@ try {
         exit;
     }
     
-    // Verify zone exists
-    $zone = $db->fetch("SELECT * FROM zones WHERE id = ?", [$zoneId]);
-    if (!$zone) {
-        echo json_encode(['success' => false, 'message' => 'Zone not found']);
+    // Verify area exists and get zone information
+    $area = $db->fetch("SELECT a.*, z.name as zone_name FROM areas a LEFT JOIN zones z ON a.zone_id = z.id WHERE a.id = ?", [$areaId]);
+    if (!$area) {
+        echo json_encode(['success' => false, 'message' => 'Area not found']);
         exit;
     }
+    $zoneId = $area['zone_id'];
     
     // Calculate dynamic pricing
     $priceCalculation = $pricing->calculateDynamicPrice($serviceId, $zoneId, $scheduledAt, $urgency);
@@ -117,7 +118,7 @@ try {
     $requestData = [
         'user_id' => $userId,
         'service_id' => $serviceId,
-        'zone_id' => $zoneId,
+        'area_id' => $areaId,
         'title' => $title,
         'description' => $description,
         'address' => $address,
@@ -140,6 +141,27 @@ try {
     ];
     $db->insert('notifications', $notificationData);
     
+    // Find and notify agents responsible for this area/zone
+    $agents = $db->fetchAll(
+        "SELECT a.*, u.username, u.email, u.first_name, u.last_name 
+         FROM agents a 
+         LEFT JOIN users u ON a.user_id = u.id 
+         WHERE (a.area_id = ? OR a.zone_id = ?) 
+         AND a.status = 'active' AND u.status = 'active'",
+        [$areaId, $zoneId]
+    );
+    
+    // Create notifications for all responsible agents
+    foreach ($agents as $agent) {
+        $agentNotificationData = [
+            'user_id' => $agent['user_id'],
+            'title' => 'New Service Request',
+            'message' => "New {$service['name']} request in {$area['name']} area. Request ID: #{$requestId}. Urgency: {$urgency}",
+            'type' => 'info'
+        ];
+        $db->insert('notifications', $agentNotificationData);
+    }
+    
     // Commit transaction
     $db->commit();
     
@@ -151,7 +173,8 @@ try {
             'request_id' => $requestId,
             'title' => $title,
             'service_name' => $service['name'],
-            'zone_name' => $zone['name'],
+            'area_name' => $area['name'],
+            'zone_name' => $area['zone_name'],
             'urgency' => $urgency,
             'status' => 'pending',
             'base_price' => $basePrice,
