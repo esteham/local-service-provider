@@ -12,19 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once '../../middleware/auth.php';
 require_once '../../classes/location_manager.php';
 
-// Check authentication and admin role
-if (!isAuthenticated()) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
-
-if (!isAdmin()) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Admin access required']);
-    exit;
-}
-
 $locationManager = new LocationManager();
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? '';
