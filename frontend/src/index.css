@@ -237,13 +237,13 @@ a:hover,
 a:hover * {
   transform: none !important;
   transition: none !important;
-  animation: none !important;
-  box-shadow: none !important;
-  scale: 1 !important;
+  /* animation: none !important;
+  box-shadow: none !important; */
+  /* scale: 1 !important; */
 }
 
 /* Optional: Disable all transitions and animations */
 * {
   transition: none !important;
-  animation: none !important;
+  /* animation: none !important; */
 }
