@@ -219,3 +219,31 @@ input:focus, textarea:focus, select:focus {
 .search-result-item:hover {
   background-color: #86b1da;
 }
+
+/* ===== Disable all hover animations/effects globally ===== */
+
+.card:hover,
+.card *,
+.card:hover *,
+.card-hover:hover,
+.card-hover:hover *,
+.hover-effect:hover,
+.hover-effect:hover *,
+div:hover,
+div:hover *,
+/* button:hover,
+button:hover *, */
+a:hover,
+a:hover * {
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+  scale: 1 !important;
+}
+
+/* Optional: Disable all transitions and animations */
+* {
+  transition: none !important;
+  animation: none !important;
+}
