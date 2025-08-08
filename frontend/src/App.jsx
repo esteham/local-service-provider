@@ -16,6 +16,7 @@ import LoginFetch from "./components/Auth/LoginFetch";
 import AgentDashboard from "./components/Agents/AgentDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import WorkerDashboard from "./components/Workers/WorkerDashboard";
+import UserProfile from "./components/User/UserProfile";
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children, roles }) => {
@@ -78,6 +79,22 @@ function App() {
         <Route path="/About" element={<About />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Services" element={<Services />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-requests"
+          element={
+            <ProtectedRoute>
+              <UserProfile initialSection="requests" />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route
