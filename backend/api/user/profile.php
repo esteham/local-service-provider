@@ -33,6 +33,20 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     if ($method === 'GET') {
         $result = $user->getUserProfile($userId);
+        // Add absolute image_url if image path exists
+        if (!empty($result['success']) && !empty($result['data'])) {
+            $imgPath = $result['data']['image'] ?? '';
+            if ($imgPath) {
+                $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host = $_SERVER['HTTP_HOST'] ?? '';
+                // Ensure proper path construction for stored relative path
+                if (strpos($imgPath, '/backend/') !== 0) {
+                    // If path doesn't start with /backend/, it's likely just the filename
+                    $imgPath = '/backend' . $imgPath;
+                }
+                $result['data']['image_url'] = ($host ? ($protocol . '://' . $host) : '') . $imgPath;
+            }
+        }
         echo json_encode($result);
         exit;
     }

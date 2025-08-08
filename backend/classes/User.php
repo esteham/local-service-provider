@@ -205,8 +205,8 @@ class User {
     public function getUserProfile($id) {
         try {
             $user = $this->db->fetch(
-                "SELECT u.id, u.username, u.email, u.role, u.status, u.created_at,
-                        w.phone, w.address, w.skills, w.experience, w.hourly_rate, w.availability
+                "SELECT u.id, u.username, u.email, u.role, u.status, u.created_at, u.phone, u.image,
+                        w.phone AS worker_phone, w.address, w.skills, w.experience, w.hourly_rate, w.availability
                  FROM users u
                  LEFT JOIN workers w ON u.id = w.user_id
                  WHERE u.id = ?",
@@ -232,13 +232,16 @@ class User {
             $this->db->beginTransaction();
             
             // Update user table
-            if (isset($profileData['username']) || isset($profileData['email'])) {
+            if (isset($profileData['username']) || isset($profileData['email']) || isset($profileData['phone'])) {
                 $userData = [];
                 if (isset($profileData['username'])) {
                     $userData['username'] = $profileData['username'];
                 }
                 if (isset($profileData['email'])) {
                     $userData['email'] = $profileData['email'];
+                }
+                if (isset($profileData['phone'])) {
+                    $userData['phone'] = $profileData['phone'];
                 }
                 
                 $this->db->update('users', $userData, ['id' => $id]);

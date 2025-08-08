@@ -62,6 +62,15 @@ class Auth {
         if (!empty($userData['image'])) {
             $insertData['image'] = $userData['image'];
         }
+        if (!empty($userData['phone'])) {
+            $insertData['phone'] = $userData['phone'];
+        }
+        if (!empty($userData['first_name'])) {
+            $insertData['first_name'] = $userData['first_name'];
+        }
+        if (!empty($userData['last_name'])) {
+            $insertData['last_name'] = $userData['last_name'];
+        }
         
         try {
             $userId = $this->db->insert('users', $insertData);
