@@ -24,6 +24,16 @@ const UserProfile = ({ initialSection }) => {
   const [editForm, setEditForm] = useState({ username: '', email: '', phone: '', address: '' , skills: '', experience: ''});
   const [pwdForm, setPwdForm] = useState({ current_password: '', new_password: '' });
 
+  // Debug: track edit mode flips
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.debug('personalEdit changed:', personalEdit);
+  }, [personalEdit]);
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.debug('passwordEdit changed:', passwordEdit);
+  }, [passwordEdit]);
+
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -61,13 +71,18 @@ const UserProfile = ({ initialSection }) => {
   }, []);
 
   const handleEditSave = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     try {
-      const res = await axios.put(`${BASE_URL}/backend/api/user/profile.php`, editForm, { withCredentials: true });
+      const res = await axios.post(
+        `${BASE_URL}/backend/api/user/profile.php?action=update`,
+        editForm,
+        { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+      );
       if (res.data?.success) {
         toast.success('Profile updated');
         // refresh profile view
         setProfile(prev => ({ ...prev, ...editForm }));
+        setPersonalEdit(false);
       } else {
         toast.error(res.data?.message || 'Update failed');
       }
@@ -87,6 +102,7 @@ const UserProfile = ({ initialSection }) => {
       if (res.data?.success) {
         toast.success('Password changed successfully');
         setPwdForm({ current_password: '', new_password: '' });
+        setPasswordEdit(false);
       } else {
         toast.error(res.data?.message || 'Password change failed');
       }
@@ -156,11 +172,10 @@ const UserProfile = ({ initialSection }) => {
       <Card.Header className="d-flex justify-content-between align-items-center">
         <span>Personal Information</span>
         {!personalEdit ? (
-          <Button variant="outline-primary" size="sm" onClick={() => setPersonalEdit(true)}>Edit</Button>
+          <Button type="button" variant="outline-primary" size="sm" onClick={() => setPersonalEdit(true)}>Edit</Button>
         ) : (
           <div className="d-flex gap-2">
-            <Button variant="secondary" size="sm" onClick={handleCancelEdits}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={handleEditSave}>Save</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={handleCancelEdits}>Cancel</Button>
           </div>
         )}
       </Card.Header>
@@ -184,7 +199,7 @@ const UserProfile = ({ initialSection }) => {
             </Col>
           </Row>
         ) : (
-          <Form onSubmit={handleEditSave}>
+          <Form noValidate onSubmit={handleEditSave}>
             <Row className="g-3">
               <Col md={6}>
                 <Form.Group>
@@ -227,6 +242,9 @@ const UserProfile = ({ initialSection }) => {
                 </>
               )}
             </Row>
+            <div className="mt-3">
+              <Button type="submit" variant="primary">Save</Button>
+            </div>
           </Form>
         )}
       </Card.Body>
@@ -238,11 +256,10 @@ const UserProfile = ({ initialSection }) => {
       <Card.Header className="d-flex justify-content-between align-items-center">
         <span>Password</span>
         {!passwordEdit ? (
-          <Button variant="outline-primary" size="sm" onClick={() => setPasswordEdit(true)}>Edit</Button>
+          <Button type="button" variant="outline-primary" size="sm" onClick={() => setPasswordEdit(true)}>Edit</Button>
         ) : (
           <div className="d-flex gap-2">
-            <Button variant="secondary" size="sm" onClick={handleCancelEdits}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={handlePasswordChange}>Save</Button>
+            <Button type="button" variant="secondary" size="sm" onClick={handleCancelEdits}>Cancel</Button>
           </div>
         )}
       </Card.Header>
@@ -250,7 +267,7 @@ const UserProfile = ({ initialSection }) => {
         {!passwordEdit ? (
           <p className="text-muted">For your security, your password is hidden.</p>
         ) : (
-          <Form onSubmit={handlePasswordChange} className="mt-2">
+          <Form noValidate onSubmit={handlePasswordChange} className="mt-2">
             <Form.Group className="mb-3">
               <Form.Label>Current Password</Form.Label>
               <Form.Control type="password" value={pwdForm.current_password} onChange={e=>setPwdForm({...pwdForm, current_password: e.target.value})} />
@@ -259,6 +276,9 @@ const UserProfile = ({ initialSection }) => {
               <Form.Label>New Password</Form.Label>
               <Form.Control type="password" value={pwdForm.new_password} onChange={e=>setPwdForm({...pwdForm, new_password: e.target.value})} />
             </Form.Group>
+            <div className="mt-2">
+              <Button type="submit" variant="primary">Save</Button>
+            </div>
           </Form>
         )}
       </Card.Body>
