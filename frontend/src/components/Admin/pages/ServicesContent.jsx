@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Button, Table, Modal, Form, Badge, Tab, Tabs, Alert } from 'react-bootstrap';
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -19,6 +19,9 @@ const ServicesContent = () => {
     category_id: '',
     name: '',
     description: '',
+    image: null,
+    imageFile: null,
+    imagePreview: null,
     base_price: '',
     unit: 'hour',
     status: 'active'
@@ -65,12 +68,25 @@ const ServicesContent = () => {
       const url = `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service`;
       const method = serviceForm.id ? 'PUT' : 'POST';
       
+      const formData = new FormData();
+      formData.append('id', serviceForm.id);
+      formData.append('category_id', serviceForm.category_id);
+      formData.append('name', serviceForm.name);
+      formData.append('description', serviceForm.description);
+      formData.append('base_price', serviceForm.base_price);
+      formData.append('unit', serviceForm.unit);
+      formData.append('status', serviceForm.status);
+      
+      if (serviceForm.imageFile) {
+        formData.append('image', serviceForm.imageFile);
+      }
+
       const response = await axios({
         method,
         url,
-        data: serviceForm,
+        data: formData,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         },
         withCredentials: true
       });
@@ -86,6 +102,17 @@ const ServicesContent = () => {
     } catch (error) {
       console.error('Error saving service:', error);
       toast.error('Failed to save service');
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setServiceForm({
+        ...serviceForm,
+        imageFile: file,
+        imagePreview: URL.createObjectURL(file)
+      });
     }
   };
 
@@ -169,6 +196,9 @@ const ServicesContent = () => {
         category_id: service.category_id,
         name: service.name,
         description: service.description || '',
+        image: service.image || null,
+        imageFile: null,
+        imagePreview: service.image ? `${import.meta.env.VITE_API_URL}/${service.image}` : null,
         base_price: service.base_price,
         unit: service.unit,
         status: service.status
@@ -202,6 +232,9 @@ const ServicesContent = () => {
       category_id: '',
       name: '',
       description: '',
+      image: null,
+      imageFile: null,
+      imagePreview: null,
       base_price: '',
       unit: 'hour',
       status: 'active'
@@ -258,6 +291,7 @@ const ServicesContent = () => {
                 <Table responsive hover>
                   <thead>
                     <tr>
+                      <th>Image</th>
                       <th>Name</th>
                       <th>Category</th>
                       <th>Price</th>
@@ -269,6 +303,16 @@ const ServicesContent = () => {
                   <tbody>
                     {services.map((service) => (
                       <tr key={service.id}>
+                        <td>
+                          {service.image && (
+                            <img 
+                              src={`${import.meta.env.VITE_API_URL}/${service.image}`} 
+                              alt={service.name}
+                              style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                              className="rounded"
+                            />
+                          )}
+                        </td>
                         <td>
                           <strong>{service.name}</strong>
                           {service.description && (
@@ -436,6 +480,35 @@ const ServicesContent = () => {
                 value={serviceForm.description}
                 onChange={(e) => setServiceForm({...serviceForm, description: e.target.value})}
               />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Service Image</Form.Label>
+              <Form.Control 
+                type="file" 
+                accept="image/*"
+                onChange={handleImageChange}
+              />
+              {serviceForm.imagePreview && (
+                <div className="mt-2">
+                  <img 
+                    src={serviceForm.imagePreview} 
+                    alt="Preview" 
+                    style={{ maxWidth: '200px', maxHeight: '200px' }}
+                    className="img-thumbnail"
+                  />
+                </div>
+              )}
+              {selectedService?.image && !serviceForm.imagePreview && (
+                <div className="mt-2">
+                  <img 
+                    src={`${import.meta.env.VITE_API_URL}/${selectedService.image}`} 
+                    alt="Current" 
+                    style={{ maxWidth: '200px', maxHeight: '200px' }}
+                    className="img-thumbnail"
+                  />
+                </div>
+              )}
             </Form.Group>
 
             <Row>
