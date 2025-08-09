@@ -57,6 +57,17 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+ALTER TABLE users 
+MODIFY COLUMN status ENUM('active', 'inactive', 'pending', 'email_pending', 'rejected') DEFAULT 'email_pending';
+
+-- Add email verification columns if they don't exist
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP NULL,
+ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) NULL,
+ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) NULL,
+ADD COLUMN IF NOT EXISTS phone VARCHAR(20) NULL;
+
 CREATE TABLE IF NOT EXISTS documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     worker_id INT NOT NULL,
@@ -82,12 +93,14 @@ CREATE TABLE IF NOT EXISTS services (
     category_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    image VARCHAR(255) DEFAULT NULL,
     base_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     unit VARCHAR(50) DEFAULT 'hour',
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
+
 
 -- Worker profiles
 CREATE TABLE IF NOT EXISTS workers (
