@@ -225,6 +225,33 @@ function createCategory($db, $input) {
     echo json_encode(['success' => true, 'message' => 'Category created successfully', 'id' => $id]);
 }
 
+function updateCategory($db, $input) {
+    if (empty($input['id'])) throw new Exception('Category ID is required');
+
+    $data = [
+        'name' => $input['name'],
+        'description' => $input['description'],
+        'icon' => $input['icon'],
+        'status' => $input['status']
+    ];
+    $db->update('categories', $data, ['id' => $input['id']]);
+    echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
+}
+
+function deleteCategory($db) {
+    $id = $_GET['id'] ?? null;
+    if (!$id) throw new Exception('Category ID required');
+
+    $count = $db->fetch("SELECT COUNT(*) as total FROM services WHERE category_id = ?", [$id]);
+    if ($count['total'] > 0) {
+        throw new Exception('Cannot delete category with existing services');
+    }
+
+    $db->delete('categories', ['id' => $id]);
+    echo json_encode(['success' => true, 'message' => 'Category deleted successfully']);
+}
+
+//Create Service
 function createService($db, $input) {
     $required = ['category_id', 'name', 'base_price'];
     foreach ($required as $field) {
@@ -240,23 +267,29 @@ function createService($db, $input) {
         'status' => $input['status'] ?? 'active'
     ];
 
+    // Handle image upload if present
+    if (!empty($_FILES['image'])) {
+        $uploadDir = '../uploads/services/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileName = 'service_' . uniqid() . '.' . $fileExt;
+        $filePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+            $data['image'] = 'uploads/services/' . $fileName;
+        } else {
+            throw new Exception('Failed to upload image');
+        }
+    }
+
     $id = $db->insert('services', $data);
     echo json_encode(['success' => true, 'message' => 'Service created successfully', 'id' => $id]);
 }
 
-function updateCategory($db, $input) {
-    if (empty($input['id'])) throw new Exception('Category ID is required');
-
-    $data = [
-        'name' => $input['name'],
-        'description' => $input['description'],
-        'icon' => $input['icon'],
-        'status' => $input['status']
-    ];
-    $db->update('categories', $data, ['id' => $input['id']]);
-    echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
-}
-
+//updateService function
 function updateService($db, $input) {
     if (empty($input['id'])) throw new Exception('Service ID is required');
 
@@ -268,21 +301,33 @@ function updateService($db, $input) {
         'unit' => $input['unit'],
         'status' => $input['status']
     ];
-    $db->update('services', $data, ['id' => $input['id']]);
-    echo json_encode(['success' => true, 'message' => 'Service updated successfully']);
-}
 
-function deleteCategory($db) {
-    $id = $_GET['id'] ?? null;
-    if (!$id) throw new Exception('Category ID required');
-
-    $count = $db->fetch("SELECT COUNT(*) as total FROM services WHERE category_id = ?", [$id]);
-    if ($count['total'] > 0) {
-        throw new Exception('Cannot delete category with existing services');
+    // Handle image upload if present
+    if (!empty($_FILES['image'])) {
+        $uploadDir = '../uploads/services/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileName = 'service_' . uniqid() . '.' . $fileExt;
+        $filePath = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+            // Delete old image if exists
+            $oldImage = $db->fetch("SELECT image FROM services WHERE id = ?", [$input['id']]);
+            if ($oldImage && $oldImage['image'] && file_exists('../' . $oldImage['image'])) {
+                unlink('../' . $oldImage['image']);
+            }
+            
+            $data['image'] = 'uploads/services/' . $fileName;
+        } else {
+            throw new Exception('Failed to upload image');
+        }
     }
 
-    $db->delete('categories', ['id' => $id]);
-    echo json_encode(['success' => true, 'message' => 'Category deleted successfully']);
+    $db->update('services', $data, ['id' => $input['id']]);
+    echo json_encode(['success' => true, 'message' => 'Service updated successfully']);
 }
 
 function deleteService($db) {
