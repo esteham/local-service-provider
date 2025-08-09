@@ -304,7 +304,7 @@ function updateService($db, $input) {
 
     // Handle image upload if present
     if (!empty($_FILES['image'])) {
-        $uploadDir = '../uploads/services/';
+        $uploadDir = '../assets/uploads/services/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
@@ -320,7 +320,7 @@ function updateService($db, $input) {
                 unlink('../' . $oldImage['image']);
             }
             
-            $data['image'] = 'uploads/services/' . $fileName;
+            $data['image'] = 'assets/uploads/services/' . $fileName;
         } else {
             throw new Exception('Failed to upload image');
         }
