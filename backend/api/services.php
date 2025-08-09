@@ -29,8 +29,14 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    error_log($e->getMessage());
+    $errorDetails = [
+        'success' => false,
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ];
+    echo json_encode($errorDetails);
+    error_log("API Error: " . json_encode($errorDetails));
 }
 
 // GET handlers
@@ -89,8 +95,19 @@ function handlePut($db, $action) {
         return;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    // Handle both JSON and form-data
+    $input = [];
     $files = $_FILES;
+    
+    if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
+        $input = json_decode(file_get_contents('php://input'), true);
+    } else {
+        $input = $_POST;
+        // For PUT requests with form-data, we need to parse the input
+        if (empty($input)) {
+            parse_str(file_get_contents('php://input'), $input);
+        }
+    }
 
     switch ($action) {
         case 'category': updateCategory($db, $input); break;
@@ -315,10 +332,10 @@ function updateService($db, $input, $files) {
         'description' => $input['description'] ?? '',
         'base_price' => $input['base_price'],
         'unit' => $input['unit'] ?? 'hour',
-        'status' => $input['status'] ?? 'active',
-        'image' => $currentService['image'] 
+        'status' => $input['status'] ?? 'active'
     ];
 
+    // Only update image if a new one is provided
     if (!empty($files['image']['name'])) {
         $uploadDir = '../assets/uploads/services/';
         if (!is_dir($uploadDir)) {
@@ -339,6 +356,9 @@ function updateService($db, $input, $files) {
         } else {
             throw new Exception('Failed to upload image');
         }
+    } else {
+        // Keep the existing image if no new one is provided
+        $data['image'] = $currentService['image'];
     }
 
     $db->update('services', $data, ['id' => $input['id']]);

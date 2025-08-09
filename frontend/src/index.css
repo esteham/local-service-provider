@@ -247,3 +247,15 @@ a:hover * {
   transition: none !important;
   /* animation: none !important; */
 }
+
+.filter-tab{
+  color: #1a1a1a;
+}
+
+.filter-btn{
+  color: #1a1a1a;
+}
+
+.request-filters{
+  margin-bottom: 10px;
+}

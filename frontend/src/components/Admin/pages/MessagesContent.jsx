@@ -225,7 +225,7 @@ const MessagesContent = () => {
                   </div>
                   <div className="message-preview">
                     <h4>{message.subject}</h4>
-                    <p>{message.message.substring(0, 80)}...</p>
+                    <p>{message.message ? message.message.substring(0, 80) + '...' : 'No message content'}</p>
                   </div>
                 </div>
               );

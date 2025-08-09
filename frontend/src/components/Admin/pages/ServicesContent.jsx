@@ -78,19 +78,17 @@ const ServicesContent = () => {
         formData.append('image', serviceForm.imageFile);
       }
 
-      const url = serviceForm.id 
-        ? `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceForm.id}`
-        : `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service`;
-
-      const response = await axios({
+      const config = {
         method: serviceForm.id ? 'PUT' : 'POST',
-        url,
+        url: `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service${serviceForm.id ? `&id=${serviceForm.id}` : ''}`,
         data: formData,
+        withCredentials: true,
         headers: {
           'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
-      });
+        }
+      };
+
+      const response = await axios(config);
 
       if (response.data.success) {
         toast.success(response.data.message);
@@ -121,21 +119,17 @@ const ServicesContent = () => {
     e.preventDefault();
     
     try {
-      const url = categoryForm.id 
-        ? `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category&id=${categoryForm.id}`
-        : `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category`;
-      
-      const method = categoryForm.id ? 'PUT' : 'POST';
-      
-      const response = await axios({
-        method,
-        url,
+      const config = {
+        method: categoryForm.id ? 'PUT' : 'POST',
+        url: `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category${categoryForm.id ? `&id=${categoryForm.id}` : ''}`,
         data: categoryForm,
+        withCredentials: true,
         headers: {
           'Content-Type': 'application/json'
-        },
-        withCredentials: true
-      });
+        }
+      };
+
+      const response = await axios(config);
 
       if (response.data.success) {
         toast.success(response.data.message);
@@ -274,15 +268,15 @@ const ServicesContent = () => {
 
   return (
     <div className="services-content">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-2">
         <h2>Services Management</h2>
       </div>
 
-      <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-4">
+      <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="mb-2">
         <Tab eventKey="services" title="Services">
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">All Services</h5>
+              <h5 className="mb-0 text-black">All Services</h5>
               <Button variant="primary" onClick={() => openServiceModal()}>
                 <PlusIcon className="me-2" style={{ width: '16px', height: '16px' }} />
                 Add Service
@@ -341,15 +335,15 @@ const ServicesContent = () => {
                               variant="outline-primary"
                               size="sm"
                               onClick={() => openServiceModal(service)}
-                            >
-                              <PencilIcon style={{ width: '14px', height: '14px' }} />
+                            >Edit
+                              {/* <PencilIcon style={{ width: '14px', height: '14px' }} /> */}
                             </Button>
                             <Button
                               variant="outline-danger"
                               size="sm"
                               onClick={() => handleDeleteService(service.id)}
-                            >
-                              <TrashIcon style={{ width: '14px', height: '14px' }} />
+                            >Delete
+                              {/* <TrashIcon style={{ width: '14px', height: '14px' }} /> */}
                             </Button>
                           </div>
                         </td>
@@ -365,7 +359,7 @@ const ServicesContent = () => {
         <Tab eventKey="categories" title="Categories">
           <Card>
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">Service Categories</h5>
+              <h5 className="mb-0 text-black">Service Categories</h5>
               <Button variant="primary" onClick={() => openCategoryModal()}>
                 <PlusIcon className="me-2" style={{ width: '16px', height: '16px' }} />
                 Add Category
@@ -506,7 +500,7 @@ const ServicesContent = () => {
               {selectedService?.image && !serviceForm.imagePreview && (
                 <div className="mt-2">
                   <img 
-                    src={`${import.meta.env.VITE_API_URL}/${selectedService.image}`} 
+                    src={`${import.meta.env.VITE_API_URL}/backend/${selectedService.image}`} 
                     alt="Current" 
                     style={{ maxWidth: '200px', maxHeight: '200px' }}
                     className="img-thumbnail"
