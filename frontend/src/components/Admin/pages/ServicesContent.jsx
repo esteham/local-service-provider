@@ -65,9 +65,6 @@ const ServicesContent = () => {
     e.preventDefault();
     
     try {
-      const url = `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service`;
-      const method = serviceForm.id ? 'PUT' : 'POST';
-      
       const formData = new FormData();
       formData.append('id', serviceForm.id);
       formData.append('category_id', serviceForm.category_id);
@@ -81,8 +78,12 @@ const ServicesContent = () => {
         formData.append('image', serviceForm.imageFile);
       }
 
+      const url = serviceForm.id 
+        ? `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceForm.id}`
+        : `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service`;
+
       const response = await axios({
-        method,
+        method: serviceForm.id ? 'PUT' : 'POST',
         url,
         data: formData,
         headers: {
@@ -101,7 +102,7 @@ const ServicesContent = () => {
       }
     } catch (error) {
       console.error('Error saving service:', error);
-      toast.error('Failed to save service');
+      toast.error(error.response?.data?.error || 'Failed to save service');
     }
   };
 
@@ -120,7 +121,10 @@ const ServicesContent = () => {
     e.preventDefault();
     
     try {
-      const url = `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category`;
+      const url = categoryForm.id 
+        ? `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category&id=${categoryForm.id}`
+        : `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=category`;
+      
       const method = categoryForm.id ? 'PUT' : 'POST';
       
       const response = await axios({
@@ -143,7 +147,7 @@ const ServicesContent = () => {
       }
     } catch (error) {
       console.error('Error saving category:', error);
-      toast.error('Failed to save category');
+      toast.error(error.response?.data?.error || 'Failed to save category');
     }
   };
 
@@ -164,7 +168,7 @@ const ServicesContent = () => {
       }
     } catch (error) {
       console.error('Error deleting service:', error);
-      toast.error('Failed to delete service');
+      toast.error(error.response?.data?.error || 'Failed to delete service');
     }
   };
 
@@ -185,7 +189,7 @@ const ServicesContent = () => {
       }
     } catch (error) {
       console.error('Error deleting category:', error);
-      toast.error('Failed to delete category');
+      toast.error(error.response?.data?.error || 'Failed to delete category');
     }
   };
 

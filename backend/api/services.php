@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: http://localhost:5173');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 header('Access-Control-Allow-Credentials: true');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -29,7 +29,8 @@ try {
     }
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    error_log($e->getMessage());
 }
 
 // GET handlers
@@ -49,7 +50,7 @@ function handlePost($db, $action) {
     // Check authentication for write operations
     if (!isAuthenticated()) {
         http_response_code(401);
-        echo json_encode(['error' => 'Unauthorized']);
+        echo json_encode(['success' => false, 'error' => 'Unauthorized']);
         return;
     }
     
@@ -57,14 +58,16 @@ function handlePost($db, $action) {
     $user = getCurrentUser();
     if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
         http_response_code(403);
-        echo json_encode(['error' => 'Forbidden - Admin or Agent access required']);
+        echo json_encode(['success' => false, 'error' => 'Forbidden - Admin or Agent access required']);
         return;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    $files = $_FILES;
+
     switch ($action) {
         case 'category': createCategory($db, $input); break;
-        case 'service': createService($db, $input); break;
+        case 'service': createService($db, $input, $files); break;
         default: throw new Exception('Invalid action');
     }
 }
@@ -74,7 +77,7 @@ function handlePut($db, $action) {
     // Check authentication for write operations
     if (!isAuthenticated()) {
         http_response_code(401);
-        echo json_encode(['error' => 'Unauthorized']);
+        echo json_encode(['success' => false, 'error' => 'Unauthorized']);
         return;
     }
     
@@ -82,14 +85,16 @@ function handlePut($db, $action) {
     $user = getCurrentUser();
     if (!$user || !in_array($user['role'], ['admin', 'agent'])) {
         http_response_code(403);
-        echo json_encode(['error' => 'Forbidden - Admin or Agent access required']);
+        echo json_encode(['success' => false, 'error' => 'Forbidden - Admin or Agent access required']);
         return;
     }
 
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    $files = $_FILES;
+
     switch ($action) {
         case 'category': updateCategory($db, $input); break;
-        case 'service': updateService($db, $input); break;
+        case 'service': updateService($db, $input, $files); break;
         default: throw new Exception('Invalid action');
     }
 }
@@ -99,20 +104,22 @@ function handleDelete($db, $action) {
     // Check authentication for delete operations
     if (!isAuthenticated() || !isAdmin()) {
         http_response_code(401);
-        echo json_encode(['error' => 'Unauthorized - Admin access required']);
+        echo json_encode(['success' => false, 'error' => 'Unauthorized - Admin access required']);
         return;
     }
 
+    $input = json_decode(file_get_contents('php://input'), true) ?? $_GET;
+
     switch ($action) {
-        case 'category': deleteCategory($db); break;
-        case 'service': deleteService($db); break;
+        case 'category': deleteCategory($db, $input); break;
+        case 'service': deleteService($db, $input); break;
         default: throw new Exception('Invalid action');
     }
 }
 
 function getAllServicesWithCategories($db) {
     $sql = "SELECT 
-                s.id, s.name, s.description, s.base_price, s.unit, s.status as service_status,
+                s.id, s.name, s.description, s.base_price, s.unit, s.status as service_status, s.image,
                 c.id as category_id, c.name as category_name, c.description as category_description,
                 c.icon as category_icon, c.status as category_status
             FROM services s
@@ -142,7 +149,8 @@ function getAllServicesWithCategories($db) {
             'description' => $row['description'],
             'base_price' => $row['base_price'],
             'unit' => $row['unit'],
-            'status' => $row['service_status']
+            'status' => $row['service_status'],
+            'image' => $row['image']
         ];
     }
 
@@ -185,7 +193,7 @@ function getService($db) {
         echo json_encode(['success' => true, 'data' => $row]);
     } else {
         http_response_code(404);
-        echo json_encode(['error' => 'Service not found']);
+        echo json_encode(['success' => false, 'error' => 'Service not found']);
     }
 }
 
@@ -198,7 +206,7 @@ function getCategory($db) {
         echo json_encode(['success' => true, 'data' => $row]);
     } else {
         http_response_code(404);
-        echo json_encode(['error' => 'Category not found']);
+        echo json_encode(['success' => false, 'error' => 'Category not found']);
     }
 }
 
@@ -238,8 +246,8 @@ function updateCategory($db, $input) {
     echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
 }
 
-function deleteCategory($db) {
-    $id = $_GET['id'] ?? null;
+function deleteCategory($db, $input) {
+    $id = $input['id'] ?? null;
     if (!$id) throw new Exception('Category ID required');
 
     $count = $db->fetch("SELECT COUNT(*) as total FROM services WHERE category_id = ?", [$id]);
@@ -251,11 +259,12 @@ function deleteCategory($db) {
     echo json_encode(['success' => true, 'message' => 'Category deleted successfully']);
 }
 
-//Create Service
-function createService($db, $input) {
+function createService($db, $input, $files) {
     $required = ['category_id', 'name', 'base_price'];
     foreach ($required as $field) {
-        if (empty($input[$field])) throw new Exception("Field '$field' is required");
+        if (empty($input[$field])) {
+            throw new Exception("Field '$field' is required");
+        }
     }
 
     $data = [
@@ -264,21 +273,21 @@ function createService($db, $input) {
         'description' => $input['description'] ?? '',
         'base_price' => $input['base_price'],
         'unit' => $input['unit'] ?? 'hour',
-        'status' => $input['status'] ?? 'active'
+        'status' => $input['status'] ?? 'active',
+        'image' => ''
     ];
 
-    // Handle image upload if present
-    if (!empty($_FILES['image'])) {
+    if (!empty($files['image']['name'])) {
         $uploadDir = '../assets/uploads/services/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
         
-        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileExt = pathinfo($files['image']['name'], PATHINFO_EXTENSION);
         $fileName = 'service_' . uniqid() . '.' . $fileExt;
         $filePath = $uploadDir . $fileName;
         
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+        if (move_uploaded_file($files['image']['tmp_name'], $filePath)) {
             $data['image'] = 'assets/uploads/services/' . $fileName;
         } else {
             throw new Exception('Failed to upload image');
@@ -289,35 +298,41 @@ function createService($db, $input) {
     echo json_encode(['success' => true, 'message' => 'Service created successfully', 'id' => $id]);
 }
 
-//updateService function
-function updateService($db, $input) {
-    if (empty($input['id'])) throw new Exception('Service ID is required');
+function updateService($db, $input, $files) {
+    if (empty($input['id'])) {
+        throw new Exception('Service ID is required');
+    }
+
+    // Get current service data
+    $currentService = $db->fetch("SELECT * FROM services WHERE id = ?", [$input['id']]);
+    if (!$currentService) {
+        throw new Exception('Service not found');
+    }
 
     $data = [
         'category_id' => $input['category_id'],
         'name' => $input['name'],
-        'description' => $input['description'],
+        'description' => $input['description'] ?? '',
         'base_price' => $input['base_price'],
-        'unit' => $input['unit'],
-        'status' => $input['status']
+        'unit' => $input['unit'] ?? 'hour',
+        'status' => $input['status'] ?? 'active',
+        'image' => $currentService['image'] 
     ];
 
-    // Handle image upload if present
-    if (!empty($_FILES['image'])) {
+    if (!empty($files['image']['name'])) {
         $uploadDir = '../assets/uploads/services/';
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
         
-        $fileExt = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+        $fileExt = pathinfo($files['image']['name'], PATHINFO_EXTENSION);
         $fileName = 'service_' . uniqid() . '.' . $fileExt;
         $filePath = $uploadDir . $fileName;
         
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $filePath)) {
+        if (move_uploaded_file($files['image']['tmp_name'], $filePath)) {
             // Delete old image if exists
-            $oldImage = $db->fetch("SELECT image FROM services WHERE id = ?", [$input['id']]);
-            if ($oldImage && $oldImage['image'] && file_exists('../' . $oldImage['image'])) {
-                unlink('../' . $oldImage['image']);
+            if (!empty($currentService['image']) && file_exists('../' . $currentService['image'])) {
+                unlink('../' . $currentService['image']);
             }
             
             $data['image'] = 'assets/uploads/services/' . $fileName;
@@ -330,11 +345,16 @@ function updateService($db, $input) {
     echo json_encode(['success' => true, 'message' => 'Service updated successfully']);
 }
 
-function deleteService($db) {
-    $id = $_GET['id'] ?? null;
+function deleteService($db, $input) {
+    $id = $input['id'] ?? null;
     if (!$id) throw new Exception('Service ID required');
+
+    // Get service data to delete associated image
+    $service = $db->fetch("SELECT image FROM services WHERE id = ?", [$id]);
+    if ($service && !empty($service['image']) && file_exists('../' . $service['image'])) {
+        unlink('../' . $service['image']);
+    }
 
     $db->delete('services', ['id' => $id]);
     echo json_encode(['success' => true, 'message' => 'Service deleted successfully']);
 }
-?>

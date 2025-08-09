@@ -76,8 +76,8 @@ const ModernAdminDashboard = () => {
   const [editingUser, setEditingUser] = useState(null);
   const [editingWorker, setEditingWorker] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
-  const [selectedWorker, setSelectedWorker] = useState('');
-  const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [selectedWorker, setSelectedWorker] = useState("");
+  const [assignmentNotes, setAssignmentNotes] = useState("");
 
   // Filter states
   const [requestFilter, setRequestFilter] = useState("all");
@@ -558,35 +558,35 @@ const ModernAdminDashboard = () => {
   const handleManageRequest = async (requestId, action) => {
     try {
       let response;
-      
-      if (action === 'assign') {
+
+      if (action === "assign") {
         // For assign action, we need to show worker assignment modal
-        const request = serviceRequests.find(r => r.id === requestId);
+        const request = serviceRequests.find((r) => r.id === requestId);
         setSelectedRequest(request);
         setShowWorkerAssignModal(true);
         return;
       }
-      
+
       // For other actions, update the status
       const statusMap = {
-        'reject': 'cancelled',
-        'complete': 'completed',
-        'approve': 'assigned'
+        reject: "cancelled",
+        complete: "completed",
+        approve: "assigned",
       };
-      
+
       const newStatus = statusMap[action] || action;
-      
+
       response = await axios.put(
         `${BASE_URL}/backend/api/admin/service-requests.php?id=${requestId}`,
         {
-          action: 'update_status',
-          status: newStatus
+          action: "update_status",
+          status: newStatus,
         },
         {
           withCredentials: true,
         }
       );
-      
+
       if (response.data.success) {
         toast.success(`Request ${action}ed successfully`);
         loadServiceRequests();
@@ -601,7 +601,7 @@ const ModernAdminDashboard = () => {
 
   const handleAssignWorker = async () => {
     if (!selectedWorker) {
-      toast.error('Please select a worker');
+      toast.error("Please select a worker");
       return;
     }
 
@@ -611,7 +611,7 @@ const ModernAdminDashboard = () => {
         {
           request_id: selectedRequest.id,
           worker_id: selectedWorker,
-          notes: assignmentNotes
+          notes: assignmentNotes,
         },
         {
           withCredentials: true,
@@ -619,18 +619,18 @@ const ModernAdminDashboard = () => {
       );
 
       if (response.data.success) {
-        toast.success('Worker assigned successfully');
+        toast.success("Worker assigned successfully");
         setShowWorkerAssignModal(false);
-        setSelectedWorker('');
-        setAssignmentNotes('');
+        setSelectedWorker("");
+        setAssignmentNotes("");
         setSelectedRequest(null);
         loadServiceRequests();
       } else {
-        toast.error(response.data.message || 'Failed to assign worker');
+        toast.error(response.data.message || "Failed to assign worker");
       }
     } catch (error) {
-      console.error('Failed to assign worker:', error);
-      toast.error('Failed to assign worker');
+      console.error("Failed to assign worker:", error);
+      toast.error("Failed to assign worker");
     }
   };
 
@@ -648,8 +648,8 @@ const ModernAdminDashboard = () => {
   const handleCloseWorkerAssignModal = () => {
     setShowWorkerAssignModal(false);
     setSelectedRequest(null);
-    setSelectedWorker('');
-    setAssignmentNotes('');
+    setSelectedWorker("");
+    setAssignmentNotes("");
   };
 
   const handleCloseCategoryModal = () => {
@@ -1425,7 +1425,10 @@ const ModernAdminDashboard = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Service Request Details</h3>
-              <button className="close-btn" onClick={handleCloseRequestDetailsModal}>
+              <button
+                className="close-btn"
+                onClick={handleCloseRequestDetailsModal}
+              >
                 <FaTimes />
               </button>
             </div>
@@ -1453,7 +1456,9 @@ const ModernAdminDashboard = () => {
                 </div>
                 <div className="detail-group">
                   <label>Status:</label>
-                  <span className={`status-badge status-${selectedRequest.status}`}>
+                  <span
+                    className={`status-badge status-${selectedRequest.status}`}
+                  >
                     {selectedRequest.status}
                   </span>
                 </div>
@@ -1463,7 +1468,11 @@ const ModernAdminDashboard = () => {
                 </div>
                 <div className="detail-group">
                   <label>Requested Date:</label>
-                  <span>{new Date(selectedRequest.requested_date).toLocaleDateString()}</span>
+                  <span>
+                    {new Date(
+                      selectedRequest.requested_date
+                    ).toLocaleDateString()}
+                  </span>
                 </div>
                 {selectedRequest.description && (
                   <div className="detail-group full-width">
@@ -1480,15 +1489,18 @@ const ModernAdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleCloseRequestDetailsModal}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleCloseRequestDetailsModal}
+              >
                 Close
               </button>
-              {selectedRequest.status === 'pending' && (
-                <button 
-                  className="btn btn-primary" 
+              {selectedRequest.status === "pending" && (
+                <button
+                  className="btn btn-primary"
                   onClick={() => {
                     handleCloseRequestDetailsModal();
-                    handleManageRequest(selectedRequest.id, 'assign');
+                    handleManageRequest(selectedRequest.id, "assign");
                   }}
                 >
                   Assign Worker
@@ -1505,38 +1517,51 @@ const ModernAdminDashboard = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Assign Worker to Request #{selectedRequest.id}</h3>
-              <button className="close-btn" onClick={handleCloseWorkerAssignModal}>
+              <button
+                className="close-btn"
+                onClick={handleCloseWorkerAssignModal}
+              >
                 <FaTimes />
               </button>
             </div>
             <div className="modal-body">
               <div className="request-summary">
                 <h4>{selectedRequest.service_name}</h4>
-                <p><strong>Customer:</strong> {selectedRequest.customer_name}</p>
-                <p><strong>Address:</strong> {selectedRequest.address}</p>
-                <p><strong>Price:</strong> ${selectedRequest.price}</p>
+                <p>
+                  <strong>Customer:</strong> {selectedRequest.customer_name}
+                </p>
+                <p>
+                  <strong>Address:</strong> {selectedRequest.address}
+                </p>
+                <p>
+                  <strong>Price:</strong> ${selectedRequest.price}
+                </p>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="worker-select">Select Worker:</label>
-                <select 
+                <select
                   id="worker-select"
-                  value={selectedWorker} 
+                  value={selectedWorker}
                   onChange={(e) => setSelectedWorker(e.target.value)}
                   className="form-control"
                 >
                   <option value="">Choose a worker...</option>
-                  {workers.filter(w => w.status === 'active').map(worker => (
-                    <option key={worker.id} value={worker.id}>
-                      {worker.name} - {worker.specialization}
-                    </option>
-                  ))}
+                  {workers
+                    .filter((w) => w.status === "active")
+                    .map((worker) => (
+                      <option key={worker.id} value={worker.id}>
+                        {worker.name} - {worker.specialization}
+                      </option>
+                    ))}
                 </select>
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="assignment-notes">Assignment Notes (Optional):</label>
-                <textarea 
+                <label htmlFor="assignment-notes">
+                  Assignment Notes (Optional):
+                </label>
+                <textarea
                   id="assignment-notes"
                   value={assignmentNotes}
                   onChange={(e) => setAssignmentNotes(e.target.value)}
@@ -1547,11 +1572,14 @@ const ModernAdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleCloseWorkerAssignModal}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleCloseWorkerAssignModal}
+              >
                 Cancel
               </button>
-              <button 
-                className="btn btn-primary" 
+              <button
+                className="btn btn-primary"
                 onClick={handleAssignWorker}
                 disabled={!selectedWorker}
               >
@@ -2009,9 +2037,9 @@ const ModernAdminDashboard = () => {
         .modal-content {
           background: white;
           border-radius: 12px;
-          max-width: 600px;
+          max-width: auto;
           width: 90%;
-          max-height: 90vh;
+          max-height: auto;
           overflow-y: auto;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
