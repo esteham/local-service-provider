@@ -521,6 +521,14 @@ const Services = () => {
                       <Col lg={4} md={6} className="mb-4" key={service.id}>
                         <MotionDiv.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }}>
                           <Card className="h-100 shadow-sm border-0">
+                            {service.image && (
+                              <Card.Img 
+                                variant="top" 
+                                src={`${import.meta.env.VITE_API_URL}/backend/${service.image}`}
+                                alt={service.name}
+                                style={{ height: '200px', objectFit: 'cover', padding: '0 50px'}}
+                              />
+                            )}
                             <Card.Body className="d-flex flex-column">
                               <div className="d-flex justify-content-between align-items-start mb-3">
                                 <Card.Title as="h3" className="h5">{service.name}</Card.Title>
