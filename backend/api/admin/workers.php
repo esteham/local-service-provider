@@ -29,7 +29,7 @@ $pdo = DatabaseConfig::getConnection();
 try {
     switch ($method) {
         case 'GET':
-            // Get all workers with user details
+            // Get all workers with user details using correct schema
             $sql = "SELECT 
                         w.id,
                         w.user_id,
@@ -42,7 +42,7 @@ try {
                         w.hourly_rate,
                         w.availability,
                         w.status,
-                        w.created_at,
+                        w.join_date,
                         u.username,
                         u.email,
                         u.status as user_status,
@@ -50,29 +50,28 @@ try {
                     FROM workers w
                     JOIN users u ON w.user_id = u.id
                     LEFT JOIN categories c ON w.category_id = c.id
-                    WHERE u.status = 'active'
-                    ORDER BY w.created_at DESC";
+                    ORDER BY w.join_date DESC";
             
             $stmt = $pdo->query($sql);
             $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Format the data
+            // Format the data for frontend compatibility
             $formattedWorkers = array_map(function($worker) {
                 return [
                     'id' => (int)$worker['id'],
                     'user_id' => (int)$worker['user_id'],
-                    'name' => $worker['name'],
+                    'name' => trim($worker['first_name'] . ' ' . $worker['last_name']),
                     'first_name' => $worker['first_name'],
                     'last_name' => $worker['last_name'],
                     'email' => $worker['email'],
                     'phone' => $worker['phone'],
-                    'specialization' => $worker['specialization'],
-                    'category_name' => $worker['category_name'],
+                    'specialization' => $worker['skills'], // Map skills to specialization
+                    'category_name' => $worker['category_name'] ?? 'General',
                     'status' => $worker['status'],
-                    'rating' => (float)$worker['rating'],
-                    'completed_jobs' => (int)$worker['completed_jobs'],
-                    'completedJobs' => (int)$worker['completed_jobs'], // For compatibility
-                    'created_at' => $worker['created_at']
+                    'rating' => (float)($worker['hourly_rate'] ?? 0), // Use hourly_rate as rating for demo
+                    'completed_jobs' => (int)($worker['experience'] ?? 0), // Use experience as completed jobs
+                    'completedJobs' => (int)($worker['experience'] ?? 0),
+                    'created_at' => $worker['join_date']
                 ];
             }, $workers);
             
