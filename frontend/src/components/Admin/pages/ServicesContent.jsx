@@ -202,7 +202,7 @@ const ServicesContent = () => {
         description: service.description || '',
         image: service.image || null,
         imageFile: null,
-        imagePreview: service.image ? `${import.meta.env.VITE_API_URL}/${service.image}` : null,
+        imagePreview: service.image ? `${import.meta.env.VITE_API_URL}/backend/${service.image}` : null,
         base_price: service.base_price,
         unit: service.unit,
         status: service.status
@@ -310,7 +310,7 @@ const ServicesContent = () => {
                         <td>
                           {service.image && (
                             <img 
-                              src={`${import.meta.env.VITE_API_URL}/${service.image}`} 
+                              src={`${import.meta.env.VITE_API_URL}/backend/${service.image}`} 
                               alt={service.name}
                               style={{ width: '50px', height: '50px', objectFit: 'cover' }}
                               className="rounded"
