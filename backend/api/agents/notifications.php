@@ -1,7 +1,4 @@
 <?php
-require_once '../../config/database.php';
-require_once '../../middleware/auth.php';
-
 // CORS headers
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: http://localhost:5173');
@@ -13,25 +10,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Check authentication
-if (!isAuthenticated()) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'User not authenticated']);
-    exit;
-}
+session_start();
+require_once '../../config/database.php';
+require_once '../../middleware/auth.php';
 
 // Check if user is agent
 $currentUser = getCurrentUser();
 if (!$currentUser || $currentUser['role'] !== 'agent') {
-    http_response_code(403);
+    http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Access denied. Agent role required.']);
     exit;
 }
 
-try {
-    $db = DatabaseConfig::getConnection();
-    $agentId = $currentUser['id'];
-    
+$db = DatabaseConfig::getConnection();
+
+// Get agent ID from session
+$user_id    = $SESSION['user']['id'];
+$agent_query= "SELECT id FROM agents WHERE user_id = ?" 
+$agent_stmt = $db->prepare($agent_query);
+$agent_stmt ->execute([$user_id]);
+$agent      = $agent_stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$agent){
+    http_response_code(404);
+    echo json_encode(['success' => false, 'message' => 'Agent not fount']);
+    exit;
+}
+
+$agentId = $agent['id'];
+
+try {    
     // Get notifications for this agent
     $notificationsQuery = "SELECT * FROM notifications 
                           WHERE user_id = ? 
