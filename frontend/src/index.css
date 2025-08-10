@@ -1,7 +1,13 @@
+* {
+  color: auto !important;
+  background-color: auto !important;
+  border-color: black !important;
+}
+
 :root {
   /* Color Scheme */
-  --primary: #646cff;
-  --primary-hover: #535bf2;
+  --primary: #000000;
+  --primary-hover: #ffffff;
   --primary-active: #434af0;
   --background: #242424;
   --surface: #1a1a1a;
@@ -9,6 +15,38 @@
   --text-secondary: rgba(255, 255, 255, 0.6);
   --border-radius: 8px;
   --transition: all 0.25s ease;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  background-color: white !important;
+  color: black !important;
+  border: 1px solid black !important;
+  cursor: pointer;
+}
+
+button:active,
+input[type="button"]:active,
+input[type="submit"]:active,
+input[type="reset"]:active {
+  background-color: black !important;
+  color: white !important;
+}
+
+
+:root {
+  /* Color Scheme */
+  /* --primary: #646cff;
+  --primary-hover: #535bf2;
+  --primary-active: #434af0;
+  --background: #242424;
+  --surface: #1a1a1a;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --border-radius: 8px;
+  --transition: all 0.25s ease; */
   
   /* Spacing */
   --space-xs: 0.25rem;
