@@ -497,11 +497,55 @@ const Services = () => {
               className="mb-4 justify-content-center"
               fill
             >
-              <Tab eventKey="all" title="All Services" />
-              <Tab eventKey="popular" title="Most Popular" />
-              <Tab eventKey="emergency" title="Emergency Services" />
+              <Tab
+                eventKey="all"
+                title={
+                  <span
+                    style={{
+                      color: state.activeTab === 'all' ? 'white' : 'black',
+                      backgroundColor: state.activeTab === 'all' ? 'black' : 'transparent',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                    }}
+                  >
+                    All Services
+                  </span>
+                }
+              />
+              <Tab
+                eventKey="popular"
+                title={
+                  <span
+                    style={{
+                      color: state.activeTab === 'popular' ? 'white' : 'black',
+                      backgroundColor: state.activeTab === 'popular' ? 'black' : 'transparent',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                    }}
+                  >
+                    Most Popular
+                  </span>
+                }
+              />
+              <Tab
+                eventKey="emergency"
+                title={
+                  <span
+                    style={{
+                      color: state.activeTab === 'emergency' ? 'white' : 'black',
+                      backgroundColor: state.activeTab === 'emergency' ? 'black' : 'transparent',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                    }}
+                  >
+                    Emergency Services
+                  </span>
+                }
+              />
             </Tabs>
-
             {/* Services List */}
             {filteredServices.length > 0 ? (
               filteredServices.map((category) => (
