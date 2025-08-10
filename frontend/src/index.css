@@ -17,7 +17,7 @@
   --transition: all 0.25s ease;
 }
 
-button,
+/* button,
 input[type="button"],
 input[type="submit"],
 input[type="reset"] {
@@ -33,7 +33,7 @@ input[type="submit"]:active,
 input[type="reset"]:active {
   background-color: black !important;
   color: white !important;
-}
+} */
 
 
 :root {

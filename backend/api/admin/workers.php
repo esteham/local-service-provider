@@ -43,16 +43,45 @@ try {
                         w.availability,
                         w.status,
                         w.join_date,
+                        w.zone_id,
+                        w.area_id,
                         u.username,
                         u.email,
                         u.status as user_status,
-                        c.name as category_name
+                        c.name as category_name,
+                        z.name as zone_name,
+                        a.name as area_name
                     FROM workers w
                     JOIN users u ON w.user_id = u.id
                     LEFT JOIN categories c ON w.category_id = c.id
-                    ORDER BY w.join_date DESC";
+                    LEFT JOIN zones z ON w.zone_id = z.id
+                    LEFT JOIN areas a ON w.area_id = a.id
+                    WHERE 1=1";
             
-            $stmt = $pdo->query($sql);
+            $params = [];
+            
+            // Add zone filtering
+            if (isset($_GET['zone_id']) && !empty($_GET['zone_id'])) {
+                $sql .= " AND w.zone_id = ?";
+                $params[] = (int)$_GET['zone_id'];
+            }
+            
+            // Add area filtering
+            if (isset($_GET['area_id']) && !empty($_GET['area_id'])) {
+                $sql .= " AND w.area_id = ?";
+                $params[] = (int)$_GET['area_id'];
+            }
+            
+            // Add status filtering
+            if (isset($_GET['status']) && !empty($_GET['status'])) {
+                $sql .= " AND w.status = ?";
+                $params[] = $_GET['status'];
+            }
+            
+            $sql .= " ORDER BY w.join_date DESC";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             $workers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Format the data for frontend compatibility
@@ -71,7 +100,11 @@ try {
                     'rating' => (float)($worker['hourly_rate'] ?? 0), // Use hourly_rate as rating for demo
                     'completed_jobs' => (int)($worker['experience'] ?? 0), // Use experience as completed jobs
                     'completedJobs' => (int)($worker['experience'] ?? 0),
-                    'created_at' => $worker['join_date']
+                    'created_at' => $worker['join_date'],
+                    'zone_id' => (int)($worker['zone_id'] ?? 0),
+                    'area_id' => (int)($worker['area_id'] ?? 0),
+                    'zone_name' => $worker['zone_name'] ?? '',
+                    'area_name' => $worker['area_name'] ?? ''
                 ];
             }, $workers);
             

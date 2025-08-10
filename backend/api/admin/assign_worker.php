@@ -47,6 +47,9 @@ $requestId = intval($data['request_id']);
 $workerId = intval($data['worker_id']);
 $notes = trim($data['notes'] ?? '');
 
+error_log('Assignment attempt - Request ID: ' . $requestId . ', Worker ID: ' . $workerId);
+error_log('Input data: ' . print_r($data, true));
+
 try {
     $db = DB::getInstance();
     
@@ -75,7 +78,7 @@ try {
     
     // Verify worker exists and is active
     $worker = $db->fetch(
-        "SELECT w.*, u.first_name, u.last_name, u.email, u.phone 
+        "SELECT w.*, u.email, u.phone 
          FROM workers w 
          LEFT JOIN users u ON w.user_id = u.id 
          WHERE w.id = ? AND w.status = 'active' AND u.status = 'active'", 
@@ -87,26 +90,23 @@ try {
         exit;
     }
     
-    // Create task assignment
-    $taskData = [
-        'service_request_id' => $requestId,
-        'worker_id' => $workerId,
-        'assigned_by' => $_SESSION['user']['id'],
+    // Update service request status and assign worker
+    $updateData = [
         'status' => 'assigned',
-        'notes' => $notes,
-        'assigned_at' => date('Y-m-d H:i:s')
+        'worker_id' => $workerId
     ];
     
-    $taskId = $db->insert('tasks', $taskData);
+    $updated = $db->update('service_requests', $updateData, ['id' => $requestId]);
     
-    // Update service request status
-    $db->update('service_requests', ['status' => 'assigned'], ['id' => $requestId]);
+    if (!$updated) {
+        throw new Exception('Failed to update service request');
+    }
     
     // Create notification for worker
     $workerNotificationData = [
         'user_id' => $worker['user_id'],
-        'title' => 'New Task Assignment',
-        'message' => "You have been assigned to: {$request['title']}. Task ID: #{$taskId}",
+        'title' => 'New Service Assignment',
+        'message' => "You have been assigned to: {$request['title']}. Request ID: #{$requestId}",
         'type' => 'info'
     ];
     $db->insert('notifications', $workerNotificationData);
@@ -128,8 +128,8 @@ try {
         'success' => true,
         'message' => 'Worker assigned successfully',
         'data' => [
-            'task_id' => $taskId,
             'request_id' => $requestId,
+            'worker_id' => $workerId,
             'worker_name' => $worker['first_name'] . ' ' . $worker['last_name'],
             'service_name' => $request['service_name'],
             'status' => 'assigned',
@@ -146,9 +146,12 @@ try {
     }
     
     error_log('Worker assignment failed: ' . $e->getMessage());
+    error_log('Request ID: ' . $requestId . ', Worker ID: ' . $workerId);
+    error_log('Session data: ' . print_r($_SESSION, true));
+    
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to assign worker. Please try again.'
+        'message' => 'Failed to assign worker. Error: ' . $e->getMessage()
     ]);
 }
 ?>

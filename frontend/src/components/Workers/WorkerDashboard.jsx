@@ -8,6 +8,7 @@ import DashboardLayout from '../common/DashboardLayout';
 
 const WorkerDashboard = () => {
   const { user, logout } = useAuth();
+  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost';
   const [serviceRequests, setServiceRequests] = useState([]);
   const [workerStats, setWorkerStats] = useState({});
   const [availability, setAvailability] = useState('available');
@@ -24,9 +25,9 @@ const WorkerDashboard = () => {
     setLoading(true);
     try {
       const [requestsRes, statsRes, notificationsRes] = await Promise.all([
-        axios.get('/api/workers/show_task.php'),
-        axios.get('/api/workers/stats.php'),
-        axios.get('/api/workers/notifications.php')
+        axios.get(`${BASE_URL}/backend/api/workers/show_task.php`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/workers/stats.php`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/workers/notifications.php`, { withCredentials: true })
       ]);
 
       if (requestsRes.data.success) {
@@ -51,8 +52,10 @@ const WorkerDashboard = () => {
 
   const handleAvailabilityChange = async (newAvailability) => {
     try {
-      const response = await axios.post('/api/workers/availability.php', {
+      const response = await axios.post(`${BASE_URL}/backend/api/workers/availability.php`, {
         availability: newAvailability
+      }, {
+        withCredentials: true
       });
 
       if (response.data.success) {
@@ -69,9 +72,11 @@ const WorkerDashboard = () => {
 
   const handleRequestAction = async (requestId, action) => {
     try {
-      const response = await axios.post('/api/workers/request_action.php', {
+      const response = await axios.post(`${BASE_URL}/backend/api/workers/request_action.php`, {
         request_id: requestId,
         action: action
+      }, {
+        withCredentials: true
       });
 
       if (response.data.success) {

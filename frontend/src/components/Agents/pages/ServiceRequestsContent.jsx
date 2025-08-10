@@ -16,6 +16,7 @@ const ServiceRequestsContent = () => {
   const [state, setState] = useState({
     requests: [],
     workers: [],
+    availableWorkers: [],
     loading: true,
     selectedRequest: null,
     showDetailsModal: false,
@@ -69,6 +70,33 @@ const ServiceRequestsContent = () => {
     }
   };
 
+  const loadWorkersForZoneArea = async (zoneId, areaId) => {
+    try {
+      let url = `${import.meta.env.VITE_API_URL}/backend/api/admin/workers.php?status=active`;
+      
+      // Add zone/area filtering parameters
+      if (areaId) {
+        url += `&area_id=${areaId}`;
+      } else if (zoneId) {
+        url += `&zone_id=${zoneId}`;
+      }
+      
+      const response = await axios.get(url, {
+        withCredentials: true,
+      });
+      
+      if (response.data.success) {
+        setState(prev => ({ ...prev, availableWorkers: response.data.data || [] }));
+      } else {
+        throw new Error(response.data.message || "API returned error");
+      }
+    } catch (error) {
+      console.error("Failed to load workers for zone/area:", error);
+      toast.error("Failed to load available workers. Please try again.");
+      setState(prev => ({ ...prev, availableWorkers: [] }));
+    }
+  };
+
   const handleViewDetails = (request) => {
     setState(prev => ({
       ...prev,
@@ -77,7 +105,7 @@ const ServiceRequestsContent = () => {
     }));
   };
 
-  const handleAssignWorker = (request) => {
+  const handleAssignWorker = async (request) => {
     setState(prev => ({
       ...prev,
       selectedRequest: request,
@@ -85,6 +113,14 @@ const ServiceRequestsContent = () => {
       selectedWorker: '',
       assignmentNotes: ''
     }));
+    
+    // Automatically load workers for the request's zone/area
+    if (request && (request.area_id || request.zone_id)) {
+      await loadWorkersForZoneArea(request.zone_id, request.area_id);
+    } else {
+      // Fallback to all active workers if no zone/area info
+      await loadWorkersForZoneArea(null, null);
+    }
   };
 
   const handleAssignSubmit = async (e) => {
@@ -429,23 +465,43 @@ const ServiceRequestsContent = () => {
                   <br />
                   <strong>Service:</strong> {state.selectedRequest.service_name}
                   <br />
-                  <strong>Location:</strong> {state.selectedRequest.area_name}
+                  <strong>Zone:</strong> {state.selectedRequest.zone_name || 'N/A'}
+                  <br />
+                  <strong>Area:</strong> {state.selectedRequest.area_name || 'N/A'}
+                  <br />
+                  <strong>Location:</strong> {state.selectedRequest.address}
                 </div>
                 
                 <Form.Group className="mb-3">
-                  <Form.Label>Select Worker *</Form.Label>
+                  <Form.Label>
+                    Select Worker {state.selectedRequest.area_name ? `(${state.selectedRequest.area_name} Area)` : state.selectedRequest.zone_name ? `(${state.selectedRequest.zone_name} Zone)` : ''} *
+                  </Form.Label>
                   <Form.Select
                     value={state.selectedWorker}
                     onChange={(e) => setState(prev => ({ ...prev, selectedWorker: e.target.value }))}
                     required
                   >
                     <option value="">Choose a worker...</option>
-                    {state.workers.map(worker => (
-                      <option key={worker.id} value={worker.id}>
-                        {worker.first_name} {worker.last_name} - {worker.skills || 'General'}
+                    {state.availableWorkers.length > 0 ? (
+                      state.availableWorkers.map(worker => (
+                        <option key={worker.id} value={worker.id}>
+                          {worker.name} - {worker.specialization}
+                          {worker.area_name && ` (${worker.area_name})`}
+                          {!worker.area_name && worker.zone_name && ` (${worker.zone_name})`}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No workers available in this area/zone
                       </option>
-                    ))}
+                    )}
                   </Form.Select>
+                  {state.availableWorkers.length === 0 && (
+                    <Form.Text className="text-muted">
+                      No workers found for {state.selectedRequest.area_name || state.selectedRequest.zone_name || 'this location'}. 
+                      Consider expanding search to nearby areas.
+                    </Form.Text>
+                  )}
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -464,7 +520,13 @@ const ServiceRequestsContent = () => {
           <Modal.Footer>
             <Button 
               variant="secondary" 
-              onClick={() => setState(prev => ({ ...prev, showAssignModal: false }))}
+              onClick={() => setState(prev => ({ 
+                ...prev, 
+                showAssignModal: false,
+                selectedWorker: '',
+                assignmentNotes: '',
+                availableWorkers: []
+              }))}
             >
               Cancel
             </Button>

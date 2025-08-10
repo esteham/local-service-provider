@@ -78,6 +78,7 @@ const ModernAdminDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState("");
   const [assignmentNotes, setAssignmentNotes] = useState("");
+  const [availableWorkers, setAvailableWorkers] = useState([]);
 
   // Filter states
   const [requestFilter, setRequestFilter] = useState("all");
@@ -420,6 +421,34 @@ const ModernAdminDashboard = () => {
     }
   };
 
+  const loadWorkersForZoneArea = async (zoneId, areaId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost";
+      let url = `${apiUrl}/backend/api/admin/workers.php?status=active`;
+      
+      // Add zone/area filtering parameters
+      if (areaId) {
+        url += `&area_id=${areaId}`;
+      } else if (zoneId) {
+        url += `&zone_id=${zoneId}`;
+      }
+      
+      const response = await axios.get(url, {
+        withCredentials: true,
+      });
+      
+      if (response.data.success) {
+        setAvailableWorkers(response.data.data || []);
+      } else {
+        throw new Error(response.data.message || "API returned error");
+      }
+    } catch (error) {
+      console.error("Failed to load workers for zone/area:", error);
+      toast.error("Failed to load available workers. Please try again.");
+      setAvailableWorkers([]);
+    }
+  };
+
   const handleLogout = () => {
     logout();
   };
@@ -563,6 +592,15 @@ const ModernAdminDashboard = () => {
         // For assign action, we need to show worker assignment modal
         const request = serviceRequests.find((r) => r.id === requestId);
         setSelectedRequest(request);
+        
+        // Automatically load workers for the request's zone/area
+        if (request && (request.area_id || request.zone_id)) {
+          await loadWorkersForZoneArea(request.zone_id, request.area_id);
+        } else {
+          // Fallback to all active workers if no zone/area info
+          await loadWorkersForZoneArea(null, null);
+        }
+        
         setShowWorkerAssignModal(true);
         return;
       }
@@ -624,6 +662,7 @@ const ModernAdminDashboard = () => {
         setSelectedWorker("");
         setAssignmentNotes("");
         setSelectedRequest(null);
+        setAvailableWorkers([]);
         loadServiceRequests();
       } else {
         toast.error(response.data.message || "Failed to assign worker");
@@ -641,21 +680,22 @@ const ModernAdminDashboard = () => {
   };
 
   const handleCloseRequestDetailsModal = () => {
-    setShowRequestDetailsModal(false);
-    setSelectedRequest(null);
-  };
+  setShowRequestDetailsModal(false);
+  setSelectedRequest(null);
+};
 
-  const handleCloseWorkerAssignModal = () => {
-    setShowWorkerAssignModal(false);
-    setSelectedRequest(null);
-    setSelectedWorker("");
-    setAssignmentNotes("");
-  };
+const handleCloseWorkerAssignModal = () => {
+  setShowWorkerAssignModal(false);
+  setSelectedRequest(null);
+  setSelectedWorker("");
+  setAssignmentNotes("");
+  setAvailableWorkers([]);
+};
 
-  const handleCloseCategoryModal = () => {
-    setShowCategoryCreateModal(false);
-    loadCategories(); // Refresh categories list
-  };
+const handleCloseCategoryModal = () => {
+  setShowCategoryCreateModal(false);
+  loadCategories(); // Refresh categories list
+};
 
   const handleCloseCategoryEditModal = () => {
     setShowCategoryEditModal(false);
@@ -1534,12 +1574,20 @@ const ModernAdminDashboard = () => {
                   <strong>Address:</strong> {selectedRequest.address}
                 </p>
                 <p>
+                  <strong>Zone:</strong> {selectedRequest.zone_name || 'N/A'}
+                </p>
+                <p>
+                  <strong>Area:</strong> {selectedRequest.area_name || 'N/A'}
+                </p>
+                <p>
                   <strong>Price:</strong> ${selectedRequest.price}
                 </p>
               </div>
 
               <div className="form-group">
-                <label htmlFor="worker-select">Select Worker:</label>
+                <label htmlFor="worker-select">
+                  Select Worker {selectedRequest.area_name ? `(${selectedRequest.area_name} Area)` : selectedRequest.zone_name ? `(${selectedRequest.zone_name} Zone)` : ''}:
+                </label>
                 <select
                   id="worker-select"
                   value={selectedWorker}
@@ -1547,14 +1595,26 @@ const ModernAdminDashboard = () => {
                   className="form-control"
                 >
                   <option value="">Choose a worker...</option>
-                  {workers
-                    .filter((w) => w.status === "active")
-                    .map((worker) => (
+                  {availableWorkers.length > 0 ? (
+                    availableWorkers.map((worker) => (
                       <option key={worker.id} value={worker.id}>
-                        {worker.name} - {worker.specialization}
+                        {worker.name} - {worker.specialization} 
+                        {worker.area_name && ` (${worker.area_name})`}
+                        {!worker.area_name && worker.zone_name && ` (${worker.zone_name})`}
                       </option>
-                    ))}
+                    ))
+                  ) : (
+                    <option value="" disabled>
+                      No workers available in this area/zone
+                    </option>
+                  )}
                 </select>
+                {availableWorkers.length === 0 && (
+                  <small className="text-muted">
+                    No workers found for {selectedRequest.area_name || selectedRequest.zone_name || 'this location'}. 
+                    Consider expanding search to nearby areas.
+                  </small>
+                )}
               </div>
 
               <div className="form-group">
@@ -2038,7 +2098,7 @@ const ModernAdminDashboard = () => {
           background: white;
           border-radius: 12px;
           max-width: auto;
-          width: 90%;
+          width: 45%;
           max-height: auto;
           overflow-y: auto;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
@@ -2212,6 +2272,13 @@ const ModernAdminDashboard = () => {
         .status-cancelled {
           background: #f3f4f6;
           color: #6b7280;
+        }
+
+        .text-muted {
+          color: #6b7280 !important;
+          font-size: 0.875rem;
+          margin-top: 0.5rem;
+          display: block;
         }
 
         @media (max-width: 768px) {
