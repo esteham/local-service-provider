@@ -37,7 +37,7 @@ const WorkerSidebar = ({ activeTab, setActiveTab, onLogout }) => {
       setActiveTab={setActiveTab}
       onLogout={onLogout}
       avatarIcon={FaUser}
-      gradientColors={['#667eea', '#764ba2']}
+      gradientColors={['#4e5251ff', '#54689eff']}
       statusBadge={{ type: 'online', text: 'Online' }}
     />
   );
