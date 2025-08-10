@@ -286,14 +286,14 @@ a:hover * {
   /* animation: none !important; */
 }
 
-.filter-tab{
-  color: #1a1a1a;
-}
-
-.filter-btn{
-  color: #1a1a1a;
-}
 
 .request-filters{
   margin-bottom: 10px;
+}
+
+.date-filter,
+.time-range-select,
+.filter-tab,
+.filter-btn {
+  color: #000000;
 }

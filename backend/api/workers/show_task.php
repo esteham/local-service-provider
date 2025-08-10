@@ -1,4 +1,6 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: http://localhost:5173');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
@@ -14,15 +16,15 @@ require_once '../../config/database.php';
 require_once '../../middleware/auth.php';
 require_once '../../classes/DB.php';
 
-// Check if user is authenticated
-if (!isAuthenticated()) {
+// Check authentication
+$currentUser = getCurrentUser();
+if (!$currentUser || $currentUser['role'] !== 'worker') {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit;
 }
 
-// Check if user is a worker
-if ($_SESSION['user']['role'] !== 'worker') {
+if (false) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Access denied. Workers only.']);
     exit;

@@ -296,6 +296,34 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     INDEX idx_email (email)
 );
 
+-- Create worker_settings table
+CREATE TABLE IF NOT EXISTS worker_settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    worker_id INT NOT NULL,
+    email_notifications BOOLEAN DEFAULT TRUE,
+    sms_notifications BOOLEAN DEFAULT TRUE,
+    auto_accept_radius INT DEFAULT 10,
+    working_hours_start TIME DEFAULT '09:00:00',
+    working_hours_end TIME DEFAULT '17:00:00',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE
+);
+
+-- Create worker_services table
+CREATE TABLE IF NOT EXISTS worker_services (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    worker_id INT NOT NULL,
+    service_id INT NOT NULL,
+    price_override DECIMAL(10,2) NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE,
+    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_worker_service (worker_id, service_id)
+);
+
 -- Insert default data
 INSERT IGNORE INTO categories (name, description, icon) VALUES 
 ('Electrical', 'Electrical repair and installation services', 'fas fa-bolt'),
