@@ -35,7 +35,7 @@ const ServicesContent = ({ serviceRequests }) => {
 
   const fetchAvailableServices = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/backend/api/services.php`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`, {
         credentials: 'include'
       });
       const data = await response.json();

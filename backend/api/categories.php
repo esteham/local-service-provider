@@ -14,7 +14,7 @@ require_once '../classes/DB.php';
 // PUBLIC API - No authentication required for registration forms
 try {
     $db = DB::getInstance();
-    $categories = $db->fetchAll("SELECT * FROM categories ORDER BY name ASC");
+    $categories = $db->fetchAll("SELECT * FROM categories WHERE status = 'active' ORDER BY name ASC");
     
     echo json_encode([
         'success' => true,

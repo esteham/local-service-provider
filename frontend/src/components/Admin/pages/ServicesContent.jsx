@@ -79,7 +79,7 @@ const ServicesContent = () => {
       }
 
       const config = {
-        method: serviceForm.id ? 'PUT' : 'POST',
+        method: 'POST', // Always use POST for form data with files
         url: `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service${serviceForm.id ? `&id=${serviceForm.id}` : ''}`,
         data: formData,
         withCredentials: true,

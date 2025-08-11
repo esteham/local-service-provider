@@ -115,7 +115,7 @@ const Services = () => {
   // API calls
   const fetchServices = useCallback(async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/services.php`);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`);
       if (response.data.success) {
         setState(prev => ({ ...prev, services: response.data.data, loading: false }));
       } else {
@@ -158,7 +158,7 @@ const Services = () => {
   const fetchServiceDetails = useCallback(async (serviceId) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=service&id=${serviceId}`
+        `${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=service&id=${serviceId}`
       );
       if (response.data.success) {
         setState(prev => ({

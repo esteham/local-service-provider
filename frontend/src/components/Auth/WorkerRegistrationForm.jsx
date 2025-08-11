@@ -73,7 +73,7 @@ const WorkerRegistrationForm = ({ onClose, onBack }) => {
       }
 
       const servicesResponse = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/services.php?action=services`
+        `${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`
       );
       if (servicesResponse.data.success) {
         setServices(servicesResponse.data.data);

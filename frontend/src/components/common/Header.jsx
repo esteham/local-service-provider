@@ -33,7 +33,7 @@ const Header = ({ onLoginClick }) => {
   const fetchServices = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/services.php`
+        `${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`
       );
       if (response.data.success) {
         setServices(response.data.data);
