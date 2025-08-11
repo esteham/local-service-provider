@@ -13,6 +13,8 @@ import Contact from "./components/common/Contact";
 import Services from "./components/common/Services";
 import Footer from "./components/common/Footer";
 import BDlaw from "./components/common/Law/BDlaw";
+import USlaw from "./components/common/Law/USlaw";
+import Demolaw from "./components/common/Law/Demolaw";
 import LoginFetch from "./components/Auth/LoginFetch"; 
 import AgentDashboard from "./components/Agents/AgentDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
@@ -81,6 +83,8 @@ function App() {
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Services" element={<Services />} />
         <Route path="/law/BDlaw" element={<BDlaw />} />
+        <Route path="/law/USlaw" element={<USlaw />} />
+        <Route path="/law/Demolaw" element={<Demolaw />} />
         <Route
           path="/profile"
           element={

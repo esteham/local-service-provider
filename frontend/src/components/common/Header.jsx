@@ -140,8 +140,8 @@ const Header = ({ onLoginClick }) => {
               </a>
               <ul className="dropdown-menu">
                 <li><a className="dropdown-item" href="/law/BDlaw">Bangladesh Labour Law</a></li>
-                <li><a className="dropdown-item" href="/law/item2">Workplace Safety</a></li>
-                <li><a className="dropdown-item" href="/law/item3">Dispute Resolution</a></li>
+                <li><a className="dropdown-item" href="/law/USlaw">Workplace Safety</a></li>
+                <li><a className="dropdown-item" href="/law/Demolaw">Dispute Resolution</a></li>
               </ul>
             </li>
           </Nav>

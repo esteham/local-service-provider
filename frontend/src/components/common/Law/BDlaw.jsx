@@ -21,36 +21,63 @@ export default function BDlaw({ id }) {
   }, [id]);
   
     if (loading) return (
-  <div style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '200px',
-    height: '60vh',
-    width: '100vw',
-    color: '#64748b',
-    padding: '24px',
-    textAlign: 'center'
-  }}>
-    <div style={{ fontSize: '32px' }}>🔍</div>
-    <div style={{ 
-      fontSize: '20px', 
-      fontWeight: 600,
-      color: '#334155'
-    }}>
-      Oops! <span style={{ fontSize: '24px' }}>😯</span>
-    </div>
-    <p style={{ 
-      margin: 0,
-      fontSize: '15px',
-      maxWidth: '300px',
-      lineHeight: '1.6'
-    }}>
-      We couldn't find what you're looking for <span>🤔</span>
-    </p>
-  </div>
-);
+       <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '60vh',
+            width: '100%',
+            backgroundColor: '#ffffff',
+            color: '#475569',
+            padding: '24px',
+            textAlign: 'center',
+            fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif`
+        }}>
+            <div style={{ 
+            fontSize: '48px',
+            marginBottom: '16px',
+            lineHeight: 1
+            }}>🔍</div>
+            
+            <h2 style={{
+            fontSize: '24px',
+            fontWeight: 600,
+            color: '#1e293b',
+            margin: '0 0 12px 0',
+            lineHeight: 1.3
+            }}>
+            No results found
+            </h2>
+            
+            <p style={{
+            margin: 0,
+            fontSize: '16px',
+            maxWidth: '380px',
+            lineHeight: 1.5,
+            color: '#64748b',
+            marginBottom: '24px'
+            }}>
+            We couldn't find any matching laws. Try adjusting your search or check back later.
+            </p>
+            
+            <button style={{
+            padding: '12px 24px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}>
+            Try Again
+            </button>
+        </div>
+    );
 
 
   if (!act) return <p>No data found</p>;
