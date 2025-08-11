@@ -7,7 +7,6 @@ import OurClients from "./OurClients";
 import WorkerSection from "./WorkerSection";
 import AgentSection from "./AgentSection";
 import StatsSection from "./StatsSection";
-import LoginFetchModal from "../../Auth/LoginFetch";
 import RegistrationModal from "../../Auth/RegistrationModal";
 import ServiceIllustration from "../../../assets/images/premium_photo-1661932816149-291a447e3022.jpeg";
 
@@ -17,7 +16,6 @@ const Home = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
-  const [showLoginModal, setshowLoginModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   
   const staggerContainer = {
@@ -61,7 +59,7 @@ const Home = () => {
                       variant="primary"
                       size="lg"
                       className="px-4 rounded-pill shadow"
-                      onClick={() => setshowLoginModal(true)}
+                      onClick={() => setShowRegistrationModal(true)}
                     >
                       Get Started
                     </Button>
@@ -260,10 +258,6 @@ const Home = () => {
                 <RegistrationModal 
                   show={showRegistrationModal} 
                   onHide={() => setShowRegistrationModal(false)} 
-                />
-                <LoginFetchModal 
-                  show={showLoginModal} 
-                  onHide={() => setshowLoginModal(false)} 
                 />
             </Link>
           </MotionDiv.div>
