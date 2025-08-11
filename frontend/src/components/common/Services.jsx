@@ -611,7 +611,7 @@ const Services = () => {
                                 variant="top" 
                                 src={`${import.meta.env.VITE_API_URL}/backend/${service.image}`}
                                 alt={service.name}
-                                style={{ height: '200px', objectFit: 'cover', padding: '0 50px'}}
+                                style={{  height: '150px', objectFit: 'cover', padding: '0 45px'}}
                               />
                             )}
                             <Card.Body className="d-flex flex-column">

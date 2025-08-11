@@ -241,7 +241,7 @@ const ServiceRequestCard = ({
         .service-request-card {
           background: white;
           border-radius: 12px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
           overflow: hidden;
           transition: all 0.3s ease;
           margin-bottom: 1rem;
