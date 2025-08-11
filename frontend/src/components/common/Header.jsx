@@ -33,7 +33,7 @@ const Header = ({ onLoginClick }) => {
   const fetchServices = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`
+        `${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=categories`
       );
       if (response.data.success) {
         setServices(response.data.data);
@@ -100,22 +100,22 @@ const Header = ({ onLoginClick }) => {
                     ) : services.length > 0 ? (
                       <div className="row">
                         {services.map((category) => (
-                          <div key={category.id} className="col-md-4">
+                          <div key={category.id} className="col-md-4 mb-3">
                             <button
                               className="btn btn-link text-start fw-bold text-primary px-0"
-                              onClick={() => navigate(`/services?category=${category.id}`)}
+                              onClick={() => navigate(`/services?category=${category.name}`)}
                             >
                               {category.name}
                             </button>
                           </div>
                         ))}
-                        <div className="col-12 mt-3 text-center">
+                        <div className="col-12 mt-3 text-center border-top pt-3">
                           <Button
-                            variant="outline-primary"
+                            variant="primary"
                             size="sm"
                             onClick={() => navigate("/services")}
                           >
-                            Show All Services
+                            View All Services
                           </Button>
                         </div>
                       </div>

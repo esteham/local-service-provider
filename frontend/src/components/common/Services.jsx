@@ -50,25 +50,35 @@ const Services = () => {
     const query = state.searchQuery.toLowerCase();
     const matchedServices = [];
 
-    state.services.forEach(category => {
-      category.services.forEach(service => {
-        if (
-          service.name.toLowerCase().includes(query) ||
-          service.description?.toLowerCase().includes(query) ||
-          category.name.toLowerCase().includes(query)
-        ) {
-          matchedServices.push({ 
-            service, 
-            category: category.name 
+    // Ensure services is an array and has proper structure
+    if (Array.isArray(state.services)) {
+      state.services.forEach(category => {
+        if (category && Array.isArray(category.services)) {
+          category.services.forEach(service => {
+            if (
+              service.name?.toLowerCase().includes(query) ||
+              service.description?.toLowerCase().includes(query) ||
+              category.name?.toLowerCase().includes(query)
+            ) {
+              matchedServices.push({ 
+                service, 
+                category: category.name 
+              });
+            }
           });
         }
       });
-    });
+    }
 
     return matchedServices;
   }, [state.searchQuery, state.services]);
 
   const filteredServices = useMemo(() => {
+    // Ensure services is an array and has proper structure
+    if (!Array.isArray(state.services)) {
+      return [];
+    }
+
     // If there's a search query, return only matching services
     if (state.searchQuery.trim() !== '') {
       return searchResults.map(result => ({
@@ -81,10 +91,10 @@ const Services = () => {
     // If a category is selected, filter by category
     if (state.selectedCategory) {
       return state.services
-        .filter(category => category.name === state.selectedCategory)
+        .filter(category => category && category.name === state.selectedCategory)
         .map(category => ({
           ...category,
-          services: category.services.filter(service => {
+          services: (category.services || []).filter(service => {
             if (state.activeTab === 'popular') return service.base_price < 100;
             if (state.activeTab === 'emergency') {
               return service.name.toLowerCase().includes('emergency') ||
@@ -94,30 +104,52 @@ const Services = () => {
             return true;
           })
         }))
-        .filter(category => category.services.length > 0);
+        .filter(category => category.services && category.services.length > 0);
     }
 
     // Default case - apply activeTab filter
-    return state.services.map(category => ({
-      ...category,
-      services: category.services.filter(service => {
-        if (state.activeTab === 'popular') return service.base_price < 100;
-        if (state.activeTab === 'emergency') {
-          return service.name.toLowerCase().includes('emergency') ||
-                 service.name.toLowerCase().includes('urgent') ||
-                 service.description?.toLowerCase().includes('24/7');
-        }
-        return true;
-      })
-    })).filter(category => category.services.length > 0);
+    return state.services
+      .filter(category => category && category.services) // Ensure category and services exist
+      .map(category => ({
+        ...category,
+        services: category.services.filter(service => {
+          if (state.activeTab === 'popular') return service.base_price < 100;
+          if (state.activeTab === 'emergency') {
+            return service.name.toLowerCase().includes('emergency') ||
+                   service.name.toLowerCase().includes('urgent') ||
+                   service.description?.toLowerCase().includes('24/7');
+          }
+          return true;
+        })
+      }))
+      .filter(category => category.services && category.services.length > 0);
   }, [state.services, state.activeTab, state.searchQuery, state.selectedCategory, searchResults]);
 
   // API calls
   const fetchServices = useCallback(async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/backend/api/public_services.php?action=services`);
+      
       if (response.data.success) {
-        setState(prev => ({ ...prev, services: response.data.data, loading: false }));
+        // Transform flat array to nested structure
+        const servicesData = response.data.data;
+        const groupedServices = {};
+        
+        servicesData.forEach(service => {
+          const categoryName = service.category_name;
+          if (!groupedServices[categoryName]) {
+            groupedServices[categoryName] = {
+              id: service.category_id || categoryName,
+              name: categoryName,
+              icon: service.category_icon,
+              services: []
+            };
+          }
+          groupedServices[categoryName].services.push(service);
+        });
+        
+        const nestedServices = Object.values(groupedServices);
+        setState(prev => ({ ...prev, services: nestedServices, loading: false }));
       } else {
         setState(prev => ({ ...prev, error: response.data.message, loading: false }));
       }
@@ -332,10 +364,19 @@ const Services = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const serviceId = urlParams.get('service');
+    const categoryName = urlParams.get('category');
+    
     if (serviceId) {
       fetchServiceDetails(serviceId);
+    } else if (categoryName && state.services.length > 0) {
+      setState(prev => ({
+        ...prev,
+        selectedCategory: categoryName,
+        searchQuery: '',
+        activeTab: 'all'
+      }));
     }
-  }, [location, fetchServices, fetchServiceDetails]);
+  }, [location, fetchServices, fetchServiceDetails, state.services]);
 
   if (state.loading) {
     return (

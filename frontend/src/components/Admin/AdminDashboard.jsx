@@ -2098,7 +2098,6 @@ const handleCloseCategoryModal = () => {
           background: white;
           border-radius: 12px;
           max-width: auto;
-          width: 45%;
           max-height: auto;
           overflow-y: auto;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
