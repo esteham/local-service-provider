@@ -128,6 +128,22 @@ const Header = ({ onLoginClick }) => {
 
             <Nav.Link as={Link} to="/contact">Contact</Nav.Link>
             <Nav.Link as={Link} to="/about">About</Nav.Link>
+            <li className="nav-item dropdown mega-dropdown">
+              <a 
+                className="nav-link dropdown-toggle" 
+                href="#" 
+                role="button" 
+                data-bs-toggle="dropdown" 
+                aria-expanded="false"
+              >
+                Labour Law
+              </a>
+              <ul className="dropdown-menu">
+                <li><a className="dropdown-item" href="/law/BDlaw">Bangladesh Labour Law</a></li>
+                <li><a className="dropdown-item" href="/law/item2">Workplace Safety</a></li>
+                <li><a className="dropdown-item" href="/law/item3">Dispute Resolution</a></li>
+              </ul>
+            </li>
           </Nav>
 
           <Nav className="ms-auto gap-2 align-items-center">

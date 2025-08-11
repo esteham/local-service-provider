@@ -418,7 +418,7 @@ const Services = () => {
               id="services-heading"
               className="text-center mb-4 text-3xl font-bold tracking-tight text-gray-800"
             >
-              🚀 Our Services
+              Our Services
             </h1>
             <p className="text-center text-muted mb-3">
               Comprehensive solutions for all your service needs

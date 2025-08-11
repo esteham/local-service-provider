@@ -12,6 +12,7 @@ import About from "./components/common/About";
 import Contact from "./components/common/Contact";
 import Services from "./components/common/Services";
 import Footer from "./components/common/Footer";
+import BDlaw from "./components/common/Law/BDlaw";
 import LoginFetch from "./components/Auth/LoginFetch"; 
 import AgentDashboard from "./components/Agents/AgentDashboard";
 import AdminDashboard from "./components/Admin/AdminDashboard";
@@ -79,6 +80,7 @@ function App() {
         <Route path="/About" element={<About />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/Services" element={<Services />} />
+        <Route path="/law/BDlaw" element={<BDlaw />} />
         <Route
           path="/profile"
           element={
