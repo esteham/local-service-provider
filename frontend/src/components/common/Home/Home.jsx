@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button, Container, Row, Col, Card } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { motion as MotionDiv } from "framer-motion";
@@ -7,6 +7,8 @@ import OurClients from "./OurClients";
 import WorkerSection from "./WorkerSection";
 import AgentSection from "./AgentSection";
 import StatsSection from "./StatsSection";
+import LoginFetchModal from "../../Auth/LoginFetch";
+import RegistrationModal from "../../Auth/RegistrationModal";
 import ServiceIllustration from "../../../assets/images/premium_photo-1661932816149-291a447e3022.jpeg";
 
 const Home = () => {
@@ -15,6 +17,9 @@ const Home = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
+  const [showLoginModal, setshowLoginModal] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
@@ -51,11 +56,12 @@ const Home = () => {
                   our smart, real-time dynamic pricing system.
                 </p>
                 <div className="d-flex gap-3 mt-4">
-                  <Link to="/login">
+                  <Link to="">
                     <Button
                       variant="primary"
                       size="lg"
                       className="px-4 rounded-pill shadow"
+                      onClick={() => setshowLoginModal(true)}
                     >
                       Get Started
                     </Button>
@@ -241,14 +247,24 @@ const Home = () => {
               Join thousands of satisfied customers and service providers in
               your area.
             </p>
-            <Link to="/register">
+            <Link to="">
               <Button
                 variant="light"
                 size="lg"
                 className="px-5 rounded-pill shadow fw-semibold mt-2"
+                onClick={() => setShowRegistrationModal(true)}
               >
                 Sign Up Now
               </Button>
+              {/* Registration Modal */}
+                <RegistrationModal 
+                  show={showRegistrationModal} 
+                  onHide={() => setShowRegistrationModal(false)} 
+                />
+                <LoginFetchModal 
+                  show={showLoginModal} 
+                  onHide={() => setshowLoginModal(false)} 
+                />
             </Link>
           </MotionDiv.div>
         </Container>
