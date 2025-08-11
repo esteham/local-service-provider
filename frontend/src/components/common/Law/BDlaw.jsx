@@ -21,28 +21,37 @@ export default function BDlaw({ id }) {
   }, [id]);
   
     if (loading) return (
-    <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '200px',
-        gap: '12px',
-        color: '#64748b',
-        padding: '24px'
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '200px',
+    height: '60vh',
+    width: '100vw',
+    color: '#64748b',
+    padding: '24px',
+    textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '32px' }}>🔍</div>
+    <div style={{ 
+      fontSize: '20px', 
+      fontWeight: 600,
+      color: '#334155'
     }}>
-        <div style={{ fontSize: '24px', fontWeight: 500 }}>Oops</div>
-        <p style={{ 
-        margin: 0,
-        fontSize: '16px',
-        textAlign: 'center',
-        maxWidth: '300px',
-        lineHeight: '1.5'
-        }}>
-        We couldn't find the data you're looking for
-        </p>
+      Oops! <span style={{ fontSize: '24px' }}>😯</span>
     </div>
-    );
+    <p style={{ 
+      margin: 0,
+      fontSize: '15px',
+      maxWidth: '300px',
+      lineHeight: '1.6'
+    }}>
+      We couldn't find what you're looking for <span>🤔</span>
+    </p>
+  </div>
+);
+
 
   if (!act) return <p>No data found</p>;
 
