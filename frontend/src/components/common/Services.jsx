@@ -411,48 +411,16 @@ const Services = () => {
       transition={{ duration: 0.5 }}
     >
       <Container className="py-3">
-        <Container className="py-5">
-          {/* Hero Section */}
-          <Row className="align-items-center mb-5">
-            <Col lg={6}>
-              <Badge bg="primary" className="mb-3" aria-label="Years of service">
-                Quality Services Since 2023
-              </Badge>
-              <h1 className="display-5 fw-bold mb-4">
-                Professional Services for Your Home & Business
-              </h1>
-              <p className="lead mb-4">
-                We deliver exceptional service with certified professionals, transparent pricing, 
-                and a 100% satisfaction guarantee.
-              </p>
-              <Button 
-                variant="primary" 
-                size="lg" 
-                className="me-3" 
-                onClick={() => document.getElementById('services-section').scrollIntoView({ behavior: 'smooth' })}
-              >
-                Browse Services
-              </Button>
-              <Button variant="outline-primary" size="lg" onClick={() => navigate('/contact')}>
-                Request Estimate
-              </Button>
-            </Col>
-            <Col lg={6}>
-              <img 
-                src={ProfessionalTeam} 
-                alt="Our professional team providing various services" 
-                className="img-fluid rounded shadow"
-                loading="lazy"
-              />
-            </Col>
-          </Row>
-
+        <Container className="py-4">
           {/* Services Section */}
           <section id="services-section" aria-labelledby="services-heading">
-            <h2 id="services-heading" className="text-center mb-4">
-              Our Services
-            </h2>
-            <p className="text-center text-muted mb-5">
+            <h1
+              id="services-heading"
+              className="text-center mb-4 text-3xl font-bold tracking-tight text-gray-800"
+            >
+              🚀 Our Services
+            </h1>
+            <p className="text-center text-muted mb-3">
               Comprehensive solutions for all your service needs
             </p>
             
@@ -665,6 +633,40 @@ const Services = () => {
               </div>
             )}
           </section>
+          {/* Hero Section */}
+          <Row className="align-items-center mb-5">
+            <Col lg={6}>
+              <Badge bg="primary" className="mb-3" aria-label="Years of service">
+                Quality Services Since 2023
+              </Badge>
+              <h1 className="display-5 fw-bold mb-4">
+                Professional Services for Your Home & Business
+              </h1>
+              <p className="lead mb-4">
+                We deliver exceptional service with certified professionals, transparent pricing, 
+                and a 100% satisfaction guarantee.
+              </p>
+              <Button 
+                variant="primary" 
+                size="lg" 
+                className="me-3" 
+                onClick={() => document.getElementById('services-section').scrollIntoView({ behavior: 'smooth' })}
+              >
+                Browse Services
+              </Button>
+              <Button variant="outline-primary" size="lg" onClick={() => navigate('/contact')}>
+                Request Estimate
+              </Button>
+            </Col>
+            <Col lg={6}>
+              <img 
+                src={ProfessionalTeam} 
+                alt="Our professional team providing various services" 
+                className="img-fluid rounded shadow"
+                loading="lazy"
+              />
+            </Col>
+          </Row>
         </Container>
 
         {/* Service Details Modal */}
