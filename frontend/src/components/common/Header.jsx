@@ -106,7 +106,8 @@ const Header = ({ onLoginClick }) => {
                               onClick={() => navigate(`/services?category=${category.name}`)}
                             >
                               {category.name}
-                            </button>
+                            </button><br/>
+                            Discover related services and details...
                           </div>
                         ))}
                         <div className="col-12 mt-3 text-center border-top pt-3">
