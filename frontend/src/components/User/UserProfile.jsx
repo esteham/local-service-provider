@@ -1,545 +1,438 @@
 /* eslint-disable no-unused-vars */
-import React, { useEffect, useState } from 'react';
-import { Form, Button, Row, Col, Card, ListGroup, Image, Badge, Table, Spinner, Container } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import toast from 'react-hot-toast';
-import { useAuth } from '../../context/AuthContext';
-import { useLocation } from 'react-router-dom';
-import styled from 'styled-components';
+import { useForm } from 'react-hook-form';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import {
+  Container,
+  Card,
+  Form,
+  Button,
+  Spinner,
+  Alert,
+  Image,
+  Table,
+  Badge,
+  Tab,
+  Tabs,
+  Row,
+  Col,
+  ListGroup
+} from 'react-bootstrap';
 
+// Base API configuration
 const BASE_URL = import.meta.env.VITE_API_URL;
+axios.defaults.withCredentials = true;
 
-// Styled components for modern look
-const ProfileContainer = styled(Container)`
-  padding: 2rem 0;
-`;
-
-const ProfileCard = styled(Card)`
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: none;
-  overflow: hidden;
-  
-  .card-header {
-    background: white;
-    border-bottom: 1px solid #f0f0f0;
-    font-weight: 600;
-    padding: 1.25rem 1.5rem;
-  }
-`;
-
-const ProfileImage = styled(Image)`
-  object-fit: cover;
-  border: 4px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-`;
-
-const NavItem = styled(ListGroup.Item)`
-  border: none;
-  padding: 0.75rem 1.25rem;
-  font-weight: 500;
-  color: ${props => props.active ? '#4a6bff' : '#5a6169'};
-  background: ${props => props.active ? 'rgba(74, 107, 255, 0.08)' : 'transparent'};
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(74, 107, 255, 0.05);
-    color: #4a6bff;
-  }
-  
-  &:first-child, &:last-child {
-    border-radius: 0;
-  }
-`;
-
-const ModernButton = styled(Button)`
-  border-radius: 8px;
-  padding: 0.5rem 1.25rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
-`;
-
-const SectionTitle = styled.h5`
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #2d3748;
-`;
-
-const UserProfile = ({ initialSection }) => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const [loading, setLoading] = useState(true);
+const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [requests, setRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('profile');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword } = useForm();
 
-  // UI state
-  const [activeSection, setActiveSection] = useState(initialSection || (location.pathname.includes('my-requests') ? 'requests' : 'personal'));
-  const [personalEdit, setPersonalEdit] = useState(false);
-  const [passwordEdit, setPasswordEdit] = useState(false);
-
-  // Forms
-  const [editForm, setEditForm] = useState({ 
-    username: '', 
-    email: '', 
-    phone: '', 
-    address: '', 
-    skills: '', 
-    experience: '' 
-  });
-  const [pwdForm, setPwdForm] = useState({ 
-    current_password: '', 
-    new_password: '' 
-  });
-
+  // Fetch user profile and requests
   useEffect(() => {
-    const fetchAll = async () => {
+    const fetchData = async () => {
       try {
-        setLoading(true);
-        // Load profile
-        const profRes = await axios.get(`${BASE_URL}/backend/api/user/profile.php`, { 
-          withCredentials: true 
-        });
+        const [profileRes, requestsRes] = await Promise.all([
+          axios.get(`${BASE_URL}/backend/api/user/profile.php`, { withCredentials: true }),
+          axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true })
+        ]);
         
-        if (profRes.data?.success) {
-          const data = profRes.data.data;
-          setProfile(data);
-          setEditForm({
-            username: data.username || '',
-            email: data.email || '',
-            phone: data.phone || '',
-            address: data.address || '',
-            skills: data.skills || '',
-            experience: data.experience || ''
-          });
-        } else {
-          toast.error(profRes.data?.message || 'Failed to load profile');
+        if (profileRes.data.success) {
+          setProfile(profileRes.data.data);
+          reset(profileRes.data.data);
         }
-
-        // Load user's requests
-        const reqRes = await axios.get(`${BASE_URL}/backend/api/user/requests.php`, { 
-          withCredentials: true 
-        });
         
-        if (reqRes.data?.success) {
-          setRequests(reqRes.data.data || []);
+        if (requestsRes.data.success) {
+          setRequests(requestsRes.data.data);
         }
-      } catch (e) {
-        console.error(e);
-        toast.error('Failed to load data');
+      } catch (err) {
+        setError('Failed to load data');
+        toast.error('Failed to load profile data');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
-    fetchAll();
+    
+    fetchData();
   }, []);
 
-  const handleEditSave = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
+  const onProfileUpdate = async (data) => {
     try {
-      const res = await axios.post(
-        `${BASE_URL}/backend/api/user/profile.php?action=update`,
-        editForm,
-        { 
-          withCredentials: true, 
-          headers: { 'Content-Type': 'application/json' } 
-        }
-      );
-      
-      if (res.data?.success) {
-        toast.success('Profile updated successfully');
-        setProfile(prev => ({ ...prev, ...editForm }));
-        setPersonalEdit(false);
-      } else {
-        toast.error(res.data?.message || 'Update failed');
-      }
-    } catch (e) {
-      toast.error('Update failed');
-    }
-  };
-
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    if (!pwdForm.current_password || !pwdForm.new_password) {
-      toast.error('Please fill both fields');
-      return;
-    }
-    
-    try {
-      const res = await axios.post(
-        `${BASE_URL}/backend/api/auth/change_password.php`, 
-        pwdForm, 
+      const response = await axios.post(
+        `${BASE_URL}/backend/api/user/profile.php?action=update`, 
+        data, 
         { withCredentials: true }
       );
       
-      if (res.data?.success) {
-        toast.success('Password changed successfully');
-        setPwdForm({ current_password: '', new_password: '' });
-        setPasswordEdit(false);
+      if (response.data.success) {
+        toast.success('Profile updated successfully');
+        setIsEditing(false);
+        setProfile(response.data.data);
       } else {
-        toast.error(res.data?.message || 'Password change failed');
+        toast.error(response.data.message || 'Update failed');
       }
-    } catch (e) {
-      toast.error('Password change failed');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Update failed');
     }
   };
 
-  const handleCancelEdits = () => {
-    if (!profile) return;
-    setEditForm({
-      username: profile.username || '',
-      email: profile.email || '',
-      phone: profile.phone || '',
-      address: profile.address || '',
-      skills: profile.skills || '',
-      experience: profile.experience || ''
-    });
-    setPersonalEdit(false);
-    setPasswordEdit(false);
+  const onChangePassword = async (data) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/backend/api/auth/change_password.php`, 
+        data,
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        toast.success('Password changed successfully');
+        resetPassword();
+      } else {
+        toast.error(response.data.message || 'Password change failed');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Password change failed');
+    }
   };
 
-  if (loading) return (
-    <ProfileContainer className="d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-      <Spinner animation="border" variant="primary" />
-    </ProfileContainer>
-  );
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-  const Sidebar = () => (
-    <ProfileCard>
-      <Card.Body className="text-center p-4">
-        <ProfileImage
-          src={profile?.image_url || '/placeholder-avatar.png'}
-          alt="Profile"
-          roundedCircle
-          width={140}
-          height={140}
-          className="mb-3"
-        />
-        <h5 className="mb-1">{profile?.username}</h5>
-        <div className="text-muted small mb-4">{profile?.email}</div>
-        <ListGroup variant="flush">
-          <NavItem 
-            action
-            active={activeSection === 'personal'}
-            onClick={() => setActiveSection('personal')}
-          >
-            <i className="bi bi-person me-2"></i>
-            Personal Information
-          </NavItem>
-          <NavItem
-            action
-            active={activeSection === 'password'}
-            onClick={() => setActiveSection('password')}
-          >
-            <i className="bi bi-lock me-2"></i>
-            Password
-          </NavItem>
-          <NavItem
-            action
-            active={activeSection === 'requests'}
-            onClick={() => setActiveSection('requests')}
-          >
-            <i className="bi bi-list-check me-2"></i>
-            My Requests
-          </NavItem>
-        </ListGroup>
-      </Card.Body>
-    </ProfileCard>
-  );
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <Spinner animation="border" variant="primary" />
+      </div>
+    );
+  }
 
-  const PersonalInfo = () => (
-    <ProfileCard>
-      <Card.Header className="d-flex justify-content-between align-items-center">
-        <span>Personal Information</span>
-        {!personalEdit ? (
-          <ModernButton 
-            variant="outline-primary" 
-            size="sm" 
-            onClick={() => setPersonalEdit(true)}
-          >
-            <i className="bi bi-pencil me-1"></i> Edit
-          </ModernButton>
-        ) : (
-          <div className="d-flex gap-2">
-            <ModernButton 
-              variant="outline-secondary" 
-              size="sm" 
-              onClick={handleCancelEdits}
-            >
-              Cancel
-            </ModernButton>
-          </div>
-        )}
-      </Card.Header>
-      <Card.Body className="p-4">
-        {!personalEdit ? (
-          <Row>
-            <Col md={6} className="mb-4">
-              <SectionTitle>Basic Information</SectionTitle>
-              <div className="mb-3">
-                <label className="text-muted small">Username</label>
-                <div className="fw-medium">{profile?.username}</div>
-              </div>
-              <div className="mb-3">
-                <label className="text-muted small">Email</label>
-                <div className="fw-medium">{profile?.email}</div>
-              </div>
-              <div className="mb-3">
-                <label className="text-muted small">Status</label>
-                <div>
-                  <Badge bg={profile?.status === 'active' ? 'success' : 'secondary'} pill>
-                    {profile?.status}
-                  </Badge>
-                </div>
-              </div>
-            </Col>
-            <Col md={6}>
-              <SectionTitle>Contact Details</SectionTitle>
-              <div className="mb-3">
-                <label className="text-muted small">Phone</label>
-                <div className="fw-medium">{profile?.phone || '-'}</div>
-              </div>
-              <div className="mb-3">
-                <label className="text-muted small">Address</label>
-                <div className="fw-medium">{profile?.address || '-'}</div>
-              </div>
-              {profile?.role === 'worker' && (
-                <>
-                  <div className="mb-3">
-                    <label className="text-muted small">Skills</label>
-                    <div className="fw-medium">{profile?.skills || '-'}</div>
-                  </div>
-                  <div className="mb-3">
-                    <label className="text-muted small">Experience</label>
-                    <div className="fw-medium">{profile?.experience || '-'}</div>
-                  </div>
-                </>
-              )}
-            </Col>
-          </Row>
-        ) : (
-          <Form noValidate onSubmit={handleEditSave}>
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-muted small">Username</Form.Label>
-                  <Form.Control 
-                    value={editForm.username} 
-                    onChange={e => setEditForm({...editForm, username: e.target.value})} 
-                    className="py-2"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-muted small">Email</Form.Label>
-                  <Form.Control 
-                    type="email" 
-                    value={editForm.email} 
-                    onChange={e => setEditForm({...editForm, email: e.target.value})} 
-                    className="py-2"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-muted small">Phone</Form.Label>
-                  <Form.Control 
-                    value={editForm.phone} 
-                    onChange={e => setEditForm({...editForm, phone: e.target.value})} 
-                    className="py-2"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label className="text-muted small">Address</Form.Label>
-                  <Form.Control 
-                    value={editForm.address} 
-                    onChange={e => setEditForm({...editForm, address: e.target.value})} 
-                    className="py-2"
-                  />
-                </Form.Group>
-              </Col>
-              {profile?.role === 'worker' && (
-                <>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="text-muted small">Skills</Form.Label>
-                      <Form.Control 
-                        as="textarea" 
-                        rows={3}
-                        value={editForm.skills} 
-                        onChange={e => setEditForm({...editForm, skills: e.target.value})} 
-                        className="py-2"
-                      />
-                    </Form.Group>
-                  </Col>
-                  <Col md={6}>
-                    <Form.Group className="mb-3">
-                      <Form.Label className="text-muted small">Experience</Form.Label>
-                      <Form.Control 
-                        as="textarea" 
-                        rows={3}
-                        value={editForm.experience} 
-                        onChange={e => setEditForm({...editForm, experience: e.target.value})} 
-                        className="py-2"
-                      />
-                    </Form.Group>
-                  </Col>
-                </>
-              )}
-            </Row>
-            <div className="mt-3">
-              <ModernButton type="submit" variant="primary">
-                Save Changes
-              </ModernButton>
-            </div>
-          </Form>
-        )}
-      </Card.Body>
-    </ProfileCard>
-  );
-
-  const PasswordSection = () => (
-    <ProfileCard>
-      <Card.Header className="d-flex justify-content-between align-items-center">
-        <span>Password</span>
-        {!passwordEdit ? (
-          <ModernButton 
-            variant="outline-primary" 
-            size="sm" 
-            onClick={() => setPasswordEdit(true)}
-          >
-            <i className="bi bi-pencil me-1"></i> Change
-          </ModernButton>
-        ) : (
-          <div className="d-flex gap-2">
-            <ModernButton 
-              variant="outline-secondary" 
-              size="sm" 
-              onClick={handleCancelEdits}
-            >
-              Cancel
-            </ModernButton>
-          </div>
-        )}
-      </Card.Header>
-      <Card.Body className="p-4">
-        {!passwordEdit ? (
-          <div className="text-center py-4">
-            <i className="bi bi-shield-lock fs-1 text-muted mb-3"></i>
-            <p className="text-muted">For your security, your password is hidden.</p>
-          </div>
-        ) : (
-          <Form noValidate onSubmit={handlePasswordChange} className="mt-2">
-            <Form.Group className="mb-3">
-              <Form.Label className="text-muted small">Current Password</Form.Label>
-              <Form.Control 
-                type="password" 
-                value={pwdForm.current_password} 
-                onChange={e => setPwdForm({...pwdForm, current_password: e.target.value})} 
-                className="py-2"
-                placeholder="Enter current password"
-              />
-            </Form.Group>
-            <Form.Group className="mb-4">
-              <Form.Label className="text-muted small">New Password</Form.Label>
-              <Form.Control 
-                type="password" 
-                value={pwdForm.new_password} 
-                onChange={e => setPwdForm({...pwdForm, new_password: e.target.value})} 
-                className="py-2"
-                placeholder="Enter new password"
-              />
-            </Form.Group>
-            <div className="mt-2">
-              <ModernButton type="submit" variant="primary">
-                Update Password
-              </ModernButton>
-            </div>
-          </Form>
-        )}
-      </Card.Body>
-    </ProfileCard>
-  );
-
-  const RequestsSection = () => (
-    <ProfileCard>
-      <Card.Header>My Service Requests</Card.Header>
-      <Card.Body className="p-0">
-        {requests.length === 0 ? (
-          <div className="text-center py-5">
-            <i className="bi bi-inbox fs-1 text-muted mb-3"></i>
-            <h5 className="text-muted">No requests yet</h5>
-            <p className="text-muted">You have not submitted any service requests.</p>
-          </div>
-        ) : (
-          <div className="table-responsive">
-            <Table hover className="mb-0">
-              <thead className="bg-light">
-                <tr>
-                  <th>ID</th>
-                  <th>Service</th>
-                  <th>Location</th>
-                  <th>Title</th>
-                  <th>Status</th>
-                  <th>Price</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map(r => (
-                  <tr key={r.id}>
-                    <td className="fw-medium">#{r.id}</td>
-                    <td>{r.service_name}</td>
-                    <td>
-                      <div className="text-truncate" style={{ maxWidth: '150px' }}>
-                        {r.zone_name} / {r.area_name}
-                      </div>
-                    </td>
-                    <td>{r.title}</td>
-                    <td>
-                      <Badge 
-                        bg={
-                          r.status === 'completed' ? 'success' : 
-                          r.status === 'pending' ? 'warning' : 
-                          'info'
-                        } 
-                        pill
-                      >
-                        {r.status}
-                      </Badge>
-                    </td>
-                    <td className="fw-medium">
-                      {r.final_price != null ? `$${r.final_price}` : 
-                       r.base_price != null ? `$${r.base_price}` : '-'}
-                    </td>
-                    <td className="text-muted">
-                      {new Date(r.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        )}
-      </Card.Body>
-    </ProfileCard>
-  );
+  if (error) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <Alert variant="danger">{error}</Alert>
+      </div>
+    );
+  }
 
   return (
-    <ProfileContainer>
+    <Container className="py-4">
       <Row className="g-4">
-        <Col md={4} lg={3}>
-          <Sidebar />
+        {/* Left Sidebar Card */}
+        <Col lg={4}>
+          <Card className="border-0 shadow-sm h-100">
+            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
+              {profile?.image_url && (
+                <Image 
+                  src={profile.image_url} 
+                  roundedCircle 
+                  width={120}
+                  height={120}
+                  className="border border-4 border-primary mb-3"
+                />
+              )}
+              
+              <h2 className="h4 mb-1">{profile?.username || 'User'}</h2>
+              <p className="text-muted mb-3">{profile?.email}</p>
+              
+              <div className="w-100 mb-4">
+                <ListGroup variant="flush" className="border-top border-bottom">
+                  <ListGroup.Item 
+                    action 
+                    active={activeTab === 'profile'} 
+                    onClick={() => setActiveTab('profile')}
+                    className="border-0 py-2"
+                  >
+                    <i className="bi bi-person me-2"></i> Profile Information
+                  </ListGroup.Item>
+                  <ListGroup.Item 
+                    action 
+                    active={activeTab === 'requests'} 
+                    onClick={() => setActiveTab('requests')}
+                    className="border-0 py-2"
+                  >
+                    <i className="bi bi-list-check me-2"></i> Service Requests
+                  </ListGroup.Item>
+                  <ListGroup.Item 
+                    action 
+                    active={activeTab === 'security'} 
+                    onClick={() => setActiveTab('security')}
+                    className="border-0 py-2"
+                  >
+                    <i className="bi bi-shield-lock me-2"></i> Security
+                  </ListGroup.Item>
+                </ListGroup>
+              </div>
+              
+              <div className="w-100">
+                <Card className="bg-light">
+                  <Card.Body className="p-3">
+                    <h6 className="text-uppercase text-muted small mb-3">Contact Info</h6>
+                    <div className="d-flex align-items-start mb-2">
+                      <i className="bi bi-telephone text-primary mt-1 me-2"></i>
+                      <div>
+                        <div className="small text-muted">Phone</div>
+                        <div>{profile?.phone || 'Not provided'}</div>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-start">
+                      <i className="bi bi-geo-alt text-primary mt-1 me-2"></i>
+                      <div>
+                        <div className="small text-muted">Address</div>
+                        <div>{profile?.address || 'Not provided'}</div>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </div>
+            </Card.Body>
+          </Card>
         </Col>
-        <Col md={8} lg={9}>
-          {activeSection === 'personal' && <PersonalInfo />}
-          {activeSection === 'password' && <PasswordSection />}
-          {activeSection === 'requests' && <RequestsSection />}
+
+        {/* Right Content Area */}
+        <Col lg={8}>
+          <Card className="border-0 shadow-sm">
+            <Card.Body className="p-4">
+              {activeTab === 'profile' && (
+                <div>
+                  <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h2 className="h4 mb-0">Profile Information</h2>
+                    {!isEditing ? (
+                      <Button variant="outline-primary" size="sm" onClick={() => setIsEditing(true)}>
+                        <i className="bi bi-pencil-square me-1"></i> Edit Profile
+                      </Button>
+                    ) : (
+                      <Button variant="outline-secondary" size="sm" onClick={() => setIsEditing(false)}>
+                        <i className="bi bi-x-circle me-1"></i> Cancel
+                      </Button>
+                    )}
+                  </div>
+
+                  {isEditing ? (
+                    <Form onSubmit={handleSubmit(onProfileUpdate)} className="row g-3">
+                      <div className="col-md-6">
+                        <Form.Group>
+                          <Form.Label>Username</Form.Label>
+                          <Form.Control
+                            type="text"
+                            {...register('username', { required: 'Username is required' })}
+                            isInvalid={!!errors.username}
+                          />
+                          <Form.Control.Feedback type="invalid">
+                            {errors.username?.message}
+                          </Form.Control.Feedback>
+                        </Form.Group>
+                      </div>
+
+                      <div className="col-md-6">
+                        <Form.Group>
+                          <Form.Label>Email</Form.Label>
+                          <Form.Control
+                            type="email"
+                            {...register('email', { 
+                              required: 'Email is required',
+                              pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: 'Invalid email address'
+                              }
+                            })}
+                            isInvalid={!!errors.email}
+                          />
+                          <Form.Control.Feedback type="invalid">
+                            {errors.email?.message}
+                          </Form.Control.Feedback>
+                        </Form.Group>
+                      </div>
+
+                      <div className="col-md-6">
+                        <Form.Group>
+                          <Form.Label>Phone</Form.Label>
+                          <Form.Control
+                            type="tel"
+                            {...register('phone')}
+                          />
+                        </Form.Group>
+                      </div>
+
+                      <div className="col-md-6">
+                        <Form.Group>
+                          <Form.Label>Address</Form.Label>
+                          <Form.Control
+                            type="text"
+                            {...register('address')}
+                          />
+                        </Form.Group>
+                      </div>
+
+                      <div className="col-12">
+                        <Button type="submit" variant="primary" className="mt-2">
+                          <i className="bi bi-check-circle me-1"></i> Save Changes
+                        </Button>
+                      </div>
+                    </Form>
+                  ) : (
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <Card className="border-0 bg-light">
+                          <Card.Body>
+                            <div className="text-muted small mb-1">Username</div>
+                            <div className="h5">{profile?.username}</div>
+                          </Card.Body>
+                        </Card>
+                      </div>
+                      <div className="col-md-6">
+                        <Card className="border-0 bg-light">
+                          <Card.Body>
+                            <div className="text-muted small mb-1">Email</div>
+                            <div className="h5">{profile?.email}</div>
+                          </Card.Body>
+                        </Card>
+                      </div>
+                      <div className="col-md-6">
+                        <Card className="border-0 bg-light">
+                          <Card.Body>
+                            <div className="text-muted small mb-1">Phone</div>
+                            <div className="h5">{profile?.phone || '-'}</div>
+                          </Card.Body>
+                        </Card>
+                      </div>
+                      <div className="col-md-6">
+                        <Card className="border-0 bg-light">
+                          <Card.Body>
+                            <div className="text-muted small mb-1">Address</div>
+                            <div className="h5">{profile?.address || '-'}</div>
+                          </Card.Body>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'requests' && (
+                <div>
+                  <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h2 className="h4 mb-0">Service Requests</h2>
+                    <Badge pill bg="primary" className="px-3 py-2">
+                      {requests.length} {requests.length === 1 ? 'Request' : 'Requests'}
+                    </Badge>
+                  </div>
+                  
+                  {requests.length === 0 ? (
+                    <div className="text-center py-5">
+                      <div className="mb-3">
+                        <i className="bi bi-inbox fs-1 text-muted"></i>
+                      </div>
+                      <h5 className="text-muted">No service requests found</h5>
+                      <p className="text-muted">You haven't made any service requests yet</p>
+                      <Button variant="outline-primary" className="mt-2">
+                        Request a Service
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <Table hover className="align-middle">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Service</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {requests.map((request) => (
+                            <tr key={request.id}>
+                              <td>
+                                <div className="fw-semibold">{request.title}</div>
+                                <div className="text-muted small">{request.service_name}</div>
+                              </td>
+                              <td>
+                                {request.scheduled_at ? formatDate(request.scheduled_at) : 'Not scheduled'}
+                              </td>
+                              <td>
+                                <Badge 
+                                  bg={
+                                    request.status === 'completed' ? 'success' : 
+                                    request.status === 'cancelled' ? 'danger' : 'warning'
+                                  }
+                                  className="text-capitalize"
+                                >
+                                  {request.status}
+                                </Badge>
+                              </td>
+                              <td className="fw-semibold">
+                                {request.final_price ? `$${request.final_price}` : `$${request.base_price}`}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'security' && (
+                <div>
+                  <h2 className="h4 mb-4">Change Password</h2>
+                  <Form onSubmit={handlePasswordSubmit(onChangePassword)} className="max-w-sm">
+                    <Form.Group className="mb-3">
+                      <Form.Label>Current Password</Form.Label>
+                      <Form.Control
+                        type="password"
+                        {...registerPassword('current_password', { required: 'Current password is required' })}
+                        isInvalid={!!errors.current_password}
+                      />
+                      <Form.Control.Feedback type="invalid">
+                        {errors.current_password?.message}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Form.Group className="mb-4">
+                      <Form.Label>New Password</Form.Label>
+                      <Form.Control
+                        type="password"
+                        {...registerPassword('new_password', { 
+                          required: 'New password is required',
+                          minLength: {
+                            value: 8,
+                            message: 'Password must be at least 8 characters'
+                          }
+                        })}
+                        isInvalid={!!errors.new_password}
+                      />
+                      <Form.Text className="text-muted">
+                        Minimum 8 characters
+                      </Form.Text>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.new_password?.message}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Button type="submit" variant="primary" className="w-100">
+                      <i className="bi bi-shield-lock me-1"></i> Update Password
+                    </Button>
+                  </Form>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
         </Col>
       </Row>
-    </ProfileContainer>
+    </Container>
   );
 };
 

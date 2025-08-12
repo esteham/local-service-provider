@@ -51,7 +51,7 @@ try {
         exit;
     }
 
-    if ($method === 'PUT' || ($method === 'POST' && ($_GET['action'] ?? '') === 'update')) {
+    if ($method === 'POST' && ($_GET['action'] ?? '') === 'update') {
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             echo json_encode(['success' => false, 'message' => 'Invalid JSON data']);
