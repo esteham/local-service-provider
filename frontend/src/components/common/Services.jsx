@@ -918,7 +918,7 @@ const Services = () => {
                           value={state.bookingData.email}
                           onChange={handleInputChange}
                           required
-                          placeholder='On active mail'
+                          placeholder="On active mail"
                           aria-required="true"
                         />
                       </Form.Group>
@@ -935,7 +935,7 @@ const Services = () => {
                           value={state.bookingData.phone}
                           onChange={handleInputChange}
                           required
-                          placeholder='Active phone number'
+                          placeholder="Active phone number"
                           aria-required="true"
                         />
                       </Form.Group>
