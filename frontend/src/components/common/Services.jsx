@@ -37,7 +37,8 @@ const Services = () => {
       notes: '',
       zone_id: '',
       area_id: ''
-    }
+    },
+    bookingStep: 1 
   });
 
   const location = useLocation();
@@ -242,10 +243,22 @@ const Services = () => {
       return;
     }
 
-    // Validate required fields
-    const { name, email, phone, address, preferred_date, zone_id, area_id } = state.bookingData;
-    if (!name || !email || !phone || !address || !preferred_date || !zone_id || !area_id) {
-      toast.error('Please fill in all required fields including zone and area');
+    // Validate required fields based on step
+    if (state.bookingStep === 1) {
+      const { preferred_date, zone_id, area_id } = state.bookingData;
+      if (!preferred_date || !zone_id || !area_id) {
+        toast.error('Please fill in all required fields in this step');
+        return;
+      }
+      // Move to next step
+      setState(prev => ({ ...prev, bookingStep: 2 }));
+      return;
+    }
+
+    // Step 2 validation
+    const { name, email, phone, address } = state.bookingData;
+    if (!name || !email || !phone || !address) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -271,7 +284,14 @@ const Services = () => {
       );
 
       if (response.data.success) {
-        toast.success('Service request submitted successfully!');
+        toast.success(
+          <div>
+            <h6>Booking Confirmed!</h6>
+            <p>Your {state.selectedService.name} service has been scheduled.</p>
+            <p>We'll contact you shortly to confirm details.</p>
+          </div>,
+          { autoClose: 5000 }
+        );
         setState(prev => ({
           ...prev,
           showBookingModal: false,
@@ -294,7 +314,11 @@ const Services = () => {
       console.error('Error submitting booking:', error);
       toast.error('Failed to submit service request. Please try again.');
     }
-  }, [state.selectedService, state.bookingData]);
+  }, [state.selectedService, state.bookingData, state.bookingStep]);
+
+  const handlePrevStep = useCallback(() => {
+    setState(prev => ({ ...prev, bookingStep: 1 }));
+  }, []);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -731,7 +755,12 @@ const Services = () => {
         {/* Booking Modal */}
         <Modal 
           show={state.showBookingModal} 
-          onHide={() => setState(prev => ({ ...prev, showBookingModal: false }))} 
+            onHide={() => setState(prev => ({ 
+              ...prev, 
+              showBookingModal: false,
+              bookingStep: 1 
+            }))
+          } 
           size="lg"
           aria-labelledby="booking-modal-title"
         >
@@ -742,167 +771,190 @@ const Services = () => {
           </Modal.Header>
           <Form onSubmit={handleBookingSubmit}>
             <Modal.Body>
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Full Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="name"
-                      value={state.bookingData.name}
-                      onChange={handleInputChange}
-                      required
-                      aria-required="true"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Email *</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={state.bookingData.email}
-                      onChange={handleInputChange}
-                      required
-                      aria-required="true"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-              
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Phone Number *</Form.Label>
-                    <Form.Control
-                      type="tel"
-                      name="phone"
-                      value={state.bookingData.phone}
-                      onChange={handleInputChange}
-                      required
-                      aria-required="true"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Preferred Date *</Form.Label>
-                    <Form.Control
-                      type="date"
-                      name="preferred_date"
-                      value={state.bookingData.preferred_date}
-                      onChange={handleInputChange}
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                      aria-required="true"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+              {state.bookingStep === 1 ? (
+                <>
+                  <h5 className="mb-4">Step 1: Schedule Your Service</h5>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Zone *</Form.Label>
+                        <Form.Select
+                          name="zone_id"
+                          value={state.bookingData.zone_id}
+                          onChange={handleInputChange}
+                          required
+                          aria-required="true"
+                        >
+                          <option value="">Select Zone</option>
+                          {state.zones.map(zone => (
+                            <option key={zone.id} value={zone.id}>
+                              {zone.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Area *</Form.Label>
+                        <Form.Select
+                          name="area_id"
+                          value={state.bookingData.area_id}
+                          onChange={handleInputChange}
+                          required
+                          aria-required="true"
+                          disabled={!state.bookingData.zone_id}
+                        >
+                          <option value="">Select Area</option>
+                          {state.areas.map(area => (
+                            <option key={area.id} value={area.id}>
+                              {area.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
 
-              {/* Zone and Area Selection */}
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Zone *</Form.Label>
-                    <Form.Select
-                      name="zone_id"
-                      value={state.bookingData.zone_id}
-                      onChange={handleInputChange}
-                      required
-                      aria-required="true"
-                    >
-                      <option value="">Select Zone</option>
-                      {state.zones.map(zone => (
-                        <option key={zone.id} value={zone.id}>
-                          {zone.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Area *</Form.Label>
-                    <Form.Select
-                      name="area_id"
-                      value={state.bookingData.area_id}
-                      onChange={handleInputChange}
-                      required
-                      aria-required="true"
-                      disabled={!state.bookingData.zone_id}
-                    >
-                      <option value="">Select Area</option>
-                      {state.areas.map(area => (
-                        <option key={area.id} value={area.id}>
-                          {area.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Preferred Date *</Form.Label>
+                        <Form.Control
+                          type="date"
+                          name="preferred_date"
+                          value={state.bookingData.preferred_date}
+                          onChange={handleInputChange}
+                          min={new Date().toISOString().split('T')[0]}
+                          required
+                          aria-required="true"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Preferred Time</Form.Label>
+                        <Form.Control
+                          type="time"
+                          name="preferred_time"
+                          value={state.bookingData.preferred_time}
+                          onChange={handleInputChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </>
+              ) : (
+                <>
+                  <h5 className="mb-4">Step 2: Your Information</h5>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Full Name *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="name"
+                          value={state.bookingData.name}
+                          onChange={handleInputChange}
+                          required
+                          aria-required="true"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Email *</Form.Label>
+                        <Form.Control
+                          type="email"
+                          name="email"
+                          value={state.bookingData.email}
+                          onChange={handleInputChange}
+                          required
+                          aria-required="true"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Phone Number *</Form.Label>
+                        <Form.Control
+                          type="tel"
+                          name="phone"
+                          value={state.bookingData.phone}
+                          onChange={handleInputChange}
+                          required
+                          aria-required="true"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
 
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Preferred Time</Form.Label>
-                    <Form.Control
-                      type="time"
-                      name="preferred_time"
-                      value={state.bookingData.preferred_time}
-                      onChange={handleInputChange}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Service Address *</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          name="address"
+                          value={state.bookingData.address}
+                          onChange={handleInputChange}
+                          placeholder="Enter your complete address"
+                          required
+                          aria-required="true"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Additional Notes</Form.Label>
+                        <Form.Control
+                          as="textarea"
+                          rows={2}
+                          name="notes"
+                          value={state.bookingData.notes}
+                          onChange={handleInputChange}
+                          placeholder="Any specific requirements or additional information"
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Service Address *</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
-                  name="address"
-                  value={state.bookingData.address}
-                  onChange={handleInputChange}
-                  placeholder="Enter your complete address"
-                  required
-                  aria-required="true"
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Additional Notes</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  name="notes"
-                  value={state.bookingData.notes}
-                  onChange={handleInputChange}
-                  placeholder="Any specific requirements or additional information"
-                />
-              </Form.Group>
-
-              {state.selectedService && (
-                <div className="bg-light p-3 rounded">
-                  <h6>Service Summary:</h6>
-                  <p className="mb-1"><strong>{state.selectedService.name}</strong></p>
-                  <p className="mb-0 text-muted">
-                    Starting from ${state.selectedService.base_price}/{state.selectedService.unit}
-                  </p>
-                </div>
+                  <div className="bg-light p-3 rounded">
+                    <h6>Service Summary:</h6>
+                    <p className="mb-1"><strong>{state.selectedService.name}</strong></p>
+                    <p className="mb-1">Date: {state.bookingData.preferred_date} {state.bookingData.preferred_time && `at ${state.bookingData.preferred_time}`}</p>
+                    <p className="mb-0 text-muted">
+                      Starting from ${state.selectedService.base_price}/{state.selectedService.unit}
+                    </p>
+                  </div>
+                </>
               )}
             </Modal.Body>
             <Modal.Footer>
+              {state.bookingStep === 2 && (
+                <Button 
+                  variant="outline-secondary" 
+                  onClick={handlePrevStep}
+                >
+                  Back
+                </Button>
+              )}
               <Button 
                 variant="secondary" 
-                onClick={() => setState(prev => ({ ...prev, showBookingModal: false }))}
+                onClick={() => setState(prev => ({ 
+                  ...prev, 
+                  showBookingModal: false,
+                  bookingStep: 1 
+                }))}
               >
                 Cancel
               </Button>
               <Button variant="primary" type="submit">
-                Submit Request
+                {state.bookingStep === 1 ? 'Next' : 'Submit Request'}
               </Button>
             </Modal.Footer>
           </Form>
