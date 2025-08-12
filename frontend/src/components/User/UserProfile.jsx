@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -18,7 +19,8 @@ import {
   Tabs,
   Row,
   Col,
-  ListGroup
+  ListGroup,
+  InputGroup
 } from 'react-bootstrap';
 
 // Base API configuration
@@ -32,10 +34,20 @@ const UserProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [usernameAvailable, setUsernameAvailable] = useState(true);
+  const [emailAvailable, setEmailAvailable] = useState(true);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm();
-  const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword } = useForm();
+  const { register, handleSubmit, reset, formState: { errors }, watch } = useForm();
+  const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword, formState: { errors: passwordErrors }, watch: watchPassword } = useForm();
 
+  // Watch form fields for changes
+  const watchUsername = watch('username');
+  const watchEmail = watch('email');
+  const watchNewPassword = watchPassword('new_password');
+  
   // Fetch user profile and requests
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +76,58 @@ const UserProfile = () => {
     fetchData();
   }, []);
 
+  // Check username availability
+  useEffect(() => {
+    if (!isEditing || !watchUsername || watchUsername === profile?.username) {
+      setUsernameAvailable(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      checkAvailability('username', watchUsername);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [watchUsername, isEditing, profile?.username]);
+
+  // Check email availability
+  useEffect(() => {
+    if (!isEditing || !watchEmail || watchEmail === profile?.email) {
+      setEmailAvailable(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      checkAvailability('email', watchEmail);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [watchEmail, isEditing, profile?.email]);
+
+  const checkAvailability = async (field, value) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/backend/api/user/check_availability.php`,
+        { field, value },
+        { withCredentials: true }
+      );
+
+      if (field === 'username') {
+        setUsernameAvailable(response.data.available);
+      } else if (field === 'email') {
+        setEmailAvailable(response.data.available);
+      }
+    } catch (err) {
+      console.error('Availability check failed:', err);
+    }
+  };
+
   const onProfileUpdate = async (data) => {
+    if (!usernameAvailable || !emailAvailable) {
+      toast.error('Please fix the validation errors before submitting');
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${BASE_URL}/backend/api/user/profile.php?action=update`, 
@@ -227,12 +290,27 @@ const UserProfile = () => {
                           <Form.Label>Username</Form.Label>
                           <Form.Control
                             type="text"
-                            {...register('username', { required: 'Username is required' })}
-                            isInvalid={!!errors.username}
+                            {...register('username', { 
+                              required: 'Username is required',
+                              minLength: {
+                                value: 3,
+                                message: 'Username must be at least 3 characters'
+                              },
+                              maxLength: {
+                                value: 20,
+                                message: 'Username must be less than 20 characters'
+                              }
+                            })}
+                            isInvalid={!!errors.username || !usernameAvailable}
                           />
                           <Form.Control.Feedback type="invalid">
-                            {errors.username?.message}
+                            {errors.username?.message || 'Username is already taken'}
                           </Form.Control.Feedback>
+                          {!errors.username && watchUsername && watchUsername !== profile?.username && (
+                            <Form.Text className={usernameAvailable ? 'text-success' : 'text-danger'}>
+                              {usernameAvailable ? 'Username available' : 'Username not available'}
+                            </Form.Text>
+                          )}
                         </Form.Group>
                       </div>
 
@@ -248,11 +326,16 @@ const UserProfile = () => {
                                 message: 'Invalid email address'
                               }
                             })}
-                            isInvalid={!!errors.email}
+                            isInvalid={!!errors.email || !emailAvailable}
                           />
                           <Form.Control.Feedback type="invalid">
-                            {errors.email?.message}
+                            {errors.email?.message || 'Email is already in use'}
                           </Form.Control.Feedback>
+                          {!errors.email && watchEmail && watchEmail !== profile?.email && (
+                            <Form.Text className={emailAvailable ? 'text-success' : 'text-danger'}>
+                              {emailAvailable ? 'Email available' : 'Email already in use'}
+                            </Form.Text>
+                          )}
                         </Form.Group>
                       </div>
 
@@ -277,7 +360,12 @@ const UserProfile = () => {
                       </div>
 
                       <div className="col-12">
-                        <Button type="submit" variant="primary" className="mt-2">
+                        <Button 
+                          type="submit" 
+                          variant="primary" 
+                          className="mt-2"
+                          disabled={!usernameAvailable || !emailAvailable}
+                        >
                           <i className="bi bi-check-circle me-1"></i> Save Changes
                         </Button>
                       </div>
@@ -366,7 +454,7 @@ const UserProfile = () => {
                                 <Badge 
                                   bg={
                                     request.status === 'completed' ? 'success' : 
-                                    request.status === 'cancelled' ? 'danger' : 'warning'
+                                    request.status === 'cancelled' ? 'danger' : 'info'
                                   }
                                   className="text-capitalize"
                                 >
@@ -391,40 +479,85 @@ const UserProfile = () => {
                   <Form onSubmit={handlePasswordSubmit(onChangePassword)} className="max-w-sm">
                     <Form.Group className="mb-3">
                       <Form.Label>Current Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        {...registerPassword('current_password', { required: 'Current password is required' })}
-                        isInvalid={!!errors.current_password}
-                      />
+                      <InputGroup>
+                        <Form.Control
+                          type={showCurrentPassword ? "text" : "password"}
+                          {...registerPassword('current_password', { required: 'Current password is required' })}
+                          isInvalid={!!passwordErrors.current_password}
+                        />
+                        <Button 
+                          variant="outline-secondary" 
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          <i className={`bi ${showCurrentPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </InputGroup>
                       <Form.Control.Feedback type="invalid">
-                        {errors.current_password?.message}
+                        {passwordErrors.current_password?.message}
                       </Form.Control.Feedback>
                     </Form.Group>
 
-                    <Form.Group className="mb-4">
+                    <Form.Group className="mb-3">
                       <Form.Label>New Password</Form.Label>
-                      <Form.Control
-                        type="password"
-                        {...registerPassword('new_password', { 
-                          required: 'New password is required',
-                          minLength: {
-                            value: 8,
-                            message: 'Password must be at least 8 characters'
-                          }
-                        })}
-                        isInvalid={!!errors.new_password}
-                      />
+                      <InputGroup>
+                        <Form.Control
+                          type={showNewPassword ? "text" : "password"}
+                          {...registerPassword('new_password', { 
+                            required: 'New password is required',
+                            minLength: {
+                              value: 8,
+                              message: 'Password must be at least 8 characters'
+                            }
+                          })}
+                          isInvalid={!!passwordErrors.new_password}
+                        />
+                        <Button 
+                          variant="outline-secondary" 
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          <i className={`bi ${showNewPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </InputGroup>
                       <Form.Text className="text-muted">
                         Minimum 8 characters
                       </Form.Text>
                       <Form.Control.Feedback type="invalid">
-                        {errors.new_password?.message}
+                        {passwordErrors.new_password?.message}
+                      </Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Form.Group className="mb-4">
+                      <Form.Label>Confirm New Password</Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type={showConfirmPassword ? "text" : "password"}
+                          {...registerPassword('confirm_password', { 
+                            required: 'Please confirm your password',
+                            validate: value => 
+                              value === watchNewPassword || 'Passwords do not match'
+                          })}
+                          isInvalid={!!passwordErrors.confirm_password}
+                        />
+                        <Button 
+                          variant="outline-secondary" 
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                        </Button>
+                      </InputGroup>
+                      <Form.Control.Feedback type="invalid">
+                        {passwordErrors.confirm_password?.message}
                       </Form.Control.Feedback>
                     </Form.Group>
 
                     <Button type="submit" variant="primary" className="w-100">
                       <i className="bi bi-shield-lock me-1"></i> Update Password
                     </Button>
+
+                    <div className="mt-3 alert alert-warning">
+                      <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                      <strong>Danger Zone:</strong> Changing your password will log you out from all devices.
+                    </div>
                   </Form>
                 </div>
               )}
