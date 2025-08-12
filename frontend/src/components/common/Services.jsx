@@ -3,6 +3,7 @@ import {
   Container, Row, Col, Card, Badge, Button, 
   Tab, Tabs, Modal, Form, Spinner, Alert 
 } from 'react-bootstrap';
+import DatePicker from 'react-datepicker';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion as MotionDiv } from 'framer-motion';
 import axios from 'axios';
@@ -759,92 +760,138 @@ const Services = () => {
               ...prev, 
               showBookingModal: false,
               bookingStep: 1 
-            }))
-          } 
-          size="lg"
-          aria-labelledby="booking-modal-title"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title id="booking-modal-title">
-              Book Service: {state.selectedService?.name}
-            </Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={handleBookingSubmit}>
-            <Modal.Body>
-              {state.bookingStep === 1 ? (
-                <>
-                  <h5 className="mb-4">Step 1: Schedule Your Service</h5>
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Zone *</Form.Label>
-                        <Form.Select
-                          name="zone_id"
-                          value={state.bookingData.zone_id}
-                          onChange={handleInputChange}
-                          required
-                          aria-required="true"
-                        >
-                          <option value="">Select Zone</option>
-                          {state.zones.map(zone => (
-                            <option key={zone.id} value={zone.id}>
-                              {zone.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Area *</Form.Label>
-                        <Form.Select
-                          name="area_id"
-                          value={state.bookingData.area_id}
-                          onChange={handleInputChange}
-                          required
-                          aria-required="true"
-                          disabled={!state.bookingData.zone_id}
-                        >
-                          <option value="">Select Area</option>
-                          {state.areas.map(area => (
-                            <option key={area.id} value={area.id}>
-                              {area.name}
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
+            }))} 
+            size="lg"
+            aria-labelledby="booking-modal-title"
+          >
+            <Modal.Header closeButton>
+              <Modal.Title id="booking-modal-title">
+                Book Service: {state.selectedService?.name}
+              </Modal.Title>
+            </Modal.Header>
+            <Form onSubmit={handleBookingSubmit}>
+              <Modal.Body>
+                {state.bookingStep === 1 ? (
+                  <>
+                    <h5 className="mb-4">Step 1: Schedule Your Service</h5>
+                    <Row>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Zone *</Form.Label>
+                          <Form.Select
+                            name="zone_id"
+                            value={state.bookingData.zone_id}
+                            onChange={handleInputChange}
+                            required
+                            aria-required="true"
+                          >
+                            <option value="">Select Zone</option>
+                            {state.zones.map(zone => (
+                              <option key={zone.id} value={zone.id}>
+                                {zone.name}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Area *</Form.Label>
+                          <Form.Select
+                            name="area_id"
+                            value={state.bookingData.area_id}
+                            onChange={handleInputChange}
+                            required
+                            aria-required="true"
+                            disabled={!state.bookingData.zone_id}
+                          >
+                            <option value="">Select Area</option>
+                            {state.areas.map(area => (
+                              <option key={area.id} value={area.id}>
+                                {area.name}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                    </Row>
 
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Preferred Date *</Form.Label>
-                        <Form.Control
-                          type="date"
-                          name="preferred_date"
-                          value={state.bookingData.preferred_date}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          required
-                          aria-required="true"
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Preferred Time</Form.Label>
-                        <Form.Control
-                          type="time"
-                          name="preferred_time"
-                          value={state.bookingData.preferred_time}
-                          onChange={handleInputChange}
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </>
-              ) : (
+                    <Row>
+                      <Col md={6}>
+                        <Form.Group className="mt-3 mb-2">
+                          <Form.Label>Preferred Date *</Form.Label>
+                          <br/>
+                          <DatePicker
+                            selected={state.bookingData.preferred_date ? new Date(state.bookingData.preferred_date) : null}
+                            onChange={(date) => {
+                              const dateString = date ? date.toISOString().split('T')[0] : '';
+                              setState(prev => ({
+                                ...prev,
+                                bookingData: {
+                                  ...prev.bookingData,
+                                  preferred_date: dateString
+                                }
+                              }));
+                            }}
+                            minDate={new Date()}
+                            dateFormat="MMMM d, yyyy"
+                            placeholderText="Select a date"
+                            className="form-control"
+                            required
+                          />
+                          {/* Calendar Preview */}
+                          {state.bookingData.preferred_date && (
+                            <div className="mt-3 small text-muted">
+                              Selected: {new Date(state.bookingData.preferred_date).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          )}
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group className="mt-3 mb-2">
+                          <Form.Label>Preferred Time</Form.Label>
+                          <div className="position-relative">
+                            <Form.Control
+                              type="time"
+                              name="preferred_time"
+                              value={state.bookingData.preferred_time}
+                              onChange={handleInputChange}
+                              className="pe-5"
+                            />
+                            <i className="bi bi-clock position-absolute end-0 top-50 translate-middle-y me-3"></i>
+                          </div>
+                          {/* Time slots suggestion */}
+                          <div className="mt-2">
+                            <small className="text-muted">Available slots:</small>
+                            <div className="d-flex flex-wrap gap-2 mt-1">
+                              {['09:00', '11:00', '14:00', '16:00'].map(time => (
+                                <Button
+                                  key={time}
+                                  variant={state.bookingData.preferred_time === time ? 'primary' : 'outline-secondary'}
+                                  size="sm"
+                                  onClick={() => setState(prev => ({
+                                    ...prev,
+                                    bookingData: {
+                                      ...prev.bookingData,
+                                      preferred_time: time
+                                    }
+                                  }))}
+                                >
+                                  {time}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                  </>
+                ) : (
                 <>
                   <h5 className="mb-4">Step 2: Your Information</h5>
                   <Row>
@@ -857,6 +904,7 @@ const Services = () => {
                           value={state.bookingData.name}
                           onChange={handleInputChange}
                           required
+                          placeholder="Your full name"
                           aria-required="true"
                         />
                       </Form.Group>
@@ -870,6 +918,7 @@ const Services = () => {
                           value={state.bookingData.email}
                           onChange={handleInputChange}
                           required
+                          placeholder='On active mail'
                           aria-required="true"
                         />
                       </Form.Group>
@@ -886,6 +935,7 @@ const Services = () => {
                           value={state.bookingData.phone}
                           onChange={handleInputChange}
                           required
+                          placeholder='Active phone number'
                           aria-required="true"
                         />
                       </Form.Group>
@@ -926,7 +976,12 @@ const Services = () => {
                   <div className="bg-light p-3 rounded">
                     <h6>Service Summary:</h6>
                     <p className="mb-1"><strong>{state.selectedService.name}</strong></p>
-                    <p className="mb-1">Date: {state.bookingData.preferred_date} {state.bookingData.preferred_time && `at ${state.bookingData.preferred_time}`}</p>
+                    <p className="mb-1">Date: {new Date(state.bookingData.preferred_date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })} {state.bookingData.preferred_time && `at ${state.bookingData.preferred_time}`}</p>
                     <p className="mb-0 text-muted">
                       Starting from ${state.selectedService.base_price}/{state.selectedService.unit}
                     </p>
