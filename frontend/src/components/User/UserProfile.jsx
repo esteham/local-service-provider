@@ -20,7 +20,8 @@ import {
   Row,
   Col,
   ListGroup,
-  InputGroup
+  InputGroup,
+  Modal
 } from 'react-bootstrap';
 
 // Base API configuration
@@ -39,7 +40,12 @@ const UserProfile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState([]);
+
   const { register, handleSubmit, reset, formState: { errors }, watch } = useForm();
   const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword, formState: { errors: passwordErrors }, watch: watchPassword } = useForm();
 
@@ -52,9 +58,10 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, requestsRes] = await Promise.all([
+        const [profileRes, requestsRes, pendingPaymentsRes] = await Promise.all([
           axios.get(`${BASE_URL}/backend/api/user/profile.php`, { withCredentials: true }),
-          axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true })
+          axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true }),
+          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true })
         ]);
         
         if (profileRes.data.success) {
@@ -64,6 +71,10 @@ const UserProfile = () => {
         
         if (requestsRes.data.success) {
           setRequests(requestsRes.data.data);
+        }
+        
+        if (pendingPaymentsRes.data.success) {
+          setPendingPayments(pendingPaymentsRes.data.data);
         }
       } catch (err) {
         setError('Failed to load data');
@@ -168,11 +179,78 @@ const UserProfile = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const handlePayNow = (request) => {
+    setSelectedPayment(request);
+    setPaymentMethod('');
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!paymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/backend/api/user/payment.php`,
+        {
+          action: 'initiate',
+          service_request_id: selectedPayment.id,
+          payment_method: paymentMethod
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        if (paymentMethod === 'cash') {
+          toast.success('Cash payment initiated! Verification code sent to worker.');
+          setShowPaymentModal(false);
+          // Refresh data to update payment status
+          window.location.reload();
+        } else if (paymentMethod === 'online') {
+          // For online payment, simulate payment processing
+          const onlinePaymentResponse = await axios.post(
+            `${BASE_URL}/backend/api/user/payment.php`,
+            {
+              action: 'process_online',
+              payment_id: response.data.payment_id,
+              payment_data: {
+                transaction_id: 'TXN_' + Date.now(),
+                gateway: 'demo_gateway',
+                status: 'success'
+              }
+            },
+            { withCredentials: true }
+          );
+
+          if (onlinePaymentResponse.data.success) {
+            toast.success('Payment completed successfully!');
+            setShowPaymentModal(false);
+            window.location.reload();
+          } else {
+            toast.error(onlinePaymentResponse.data.message || 'Payment processing failed');
+          }
+        }
+      } else {
+        toast.error(response.data.message || 'Failed to initiate payment');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Payment processing failed. Please try again.');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const isPaymentPending = (requestId) => {
+    return pendingPayments.some(payment => payment.id === requestId);
   };
 
   if (isLoading) {
@@ -439,6 +517,7 @@ const UserProfile = () => {
                             <th>Date</th>
                             <th>Status</th>
                             <th>Price</th>
+                            <th>Action</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -464,6 +543,30 @@ const UserProfile = () => {
                               </td>
                               <td className="fw-semibold">
                                 {request.final_price ? `$${request.final_price}` : `$${request.base_price}`}
+                              </td>
+                              <td>
+                                {request.status === 'completed' && isPaymentPending(request.id) ? (
+                                  <Button 
+                                    variant="success" 
+                                    size="sm"
+                                    onClick={() => handlePayNow(request)}
+                                  >
+                                    <i className="bi bi-credit-card me-1"></i>
+                                    Pay Now
+                                  </Button>
+                                ) : request.status === 'paid' ? (
+                                  <Badge bg="success" className="px-2 py-1">
+                                    <i className="bi bi-check-circle me-1"></i>
+                                    Paid
+                                  </Badge>
+                                ) : request.status === 'payment_pending' ? (
+                                  <Badge bg="warning" className="px-2 py-1">
+                                    <i className="bi bi-clock me-1"></i>
+                                    Payment Processing
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -566,6 +669,117 @@ const UserProfile = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Payment Modal */}
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-credit-card me-2"></i>
+            Payment Options
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPayment && (
+            <div>
+              <div className="mb-4">
+                <h6 className="text-muted mb-2">Service Details</h6>
+                <div className="bg-light p-3 rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-semibold">{selectedPayment.title}</span>
+                    <Badge bg="success">Completed</Badge>
+                  </div>
+                  <div className="text-muted small mb-1">{selectedPayment.service_name}</div>
+                  <div className="fw-bold text-primary fs-5">
+                    ${selectedPayment.final_price || selectedPayment.base_price}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <h6 className="text-muted mb-3">Choose Payment Method</h6>
+                
+                <div className="d-grid gap-2">
+                  <Button
+                    variant={paymentMethod === 'online' ? 'primary' : 'outline-primary'}
+                    onClick={() => setPaymentMethod('online')}
+                    className="text-start p-3"
+                  >
+                    <div className="d-flex align-items-center">
+                      <i className="bi bi-credit-card fs-4 me-3"></i>
+                      <div>
+                        <div className="fw-semibold">Online Payment</div>
+                        <div className="small text-muted">Pay instantly with card or digital wallet</div>
+                      </div>
+                      {paymentMethod === 'online' && (
+                        <i className="bi bi-check-circle-fill text-success ms-auto"></i>
+                      )}
+                    </div>
+                  </Button>
+
+                  <Button
+                    variant={paymentMethod === 'cash' ? 'success' : 'outline-success'}
+                    onClick={() => setPaymentMethod('cash')}
+                    className="text-start p-3"
+                  >
+                    <div className="d-flex align-items-center">
+                      <i className="bi bi-cash-stack fs-4 me-3"></i>
+                      <div>
+                        <div className="fw-semibold">Cash Payment</div>
+                        <div className="small text-muted">Pay with cash - verification code sent to worker</div>
+                      </div>
+                      {paymentMethod === 'cash' && (
+                        <i className="bi bi-check-circle-fill text-success ms-auto"></i>
+                      )}
+                    </div>
+                  </Button>
+                </div>
+              </div>
+
+              {paymentMethod === 'cash' && (
+                <Alert variant="info" className="mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  <strong>Cash Payment Process:</strong>
+                  <ol className="mb-0 mt-2">
+                    <li>A verification code will be sent to the worker's email</li>
+                    <li>Pay the worker in cash</li>
+                    <li>The worker will enter the code to confirm payment</li>
+                    <li>Your payment will be marked as completed</li>
+                  </ol>
+                </Alert>
+              )}
+
+              {paymentMethod === 'online' && (
+                <Alert variant="success" className="mb-3">
+                  <i className="bi bi-shield-check me-2"></i>
+                  <strong>Secure Online Payment:</strong> Your payment will be processed securely through our payment gateway.
+                </Alert>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handlePaymentSubmit}
+            disabled={!paymentMethod || isProcessingPayment}
+          >
+            {isProcessingPayment ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                {paymentMethod === 'cash' ? 'Initiate Cash Payment' : 'Pay Now'}
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

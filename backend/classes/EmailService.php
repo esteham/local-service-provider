@@ -186,6 +186,85 @@ class EmailService {
     
 
     /**
+     * Send cash payment verification code to worker
+     */
+    public function sendCashPaymentCode($workerEmail, $workerName, $verificationCode, $amount, $serviceRequestId) {
+        try {
+            $subject = 'Cash Payment Verification Code';
+            $message = $this->getCashPaymentEmailTemplate($verificationCode, $workerName, $amount, $serviceRequestId);
+            
+            // Use the existing Admin sendMail function
+            $emailSent = $this->admin->sendMail($workerEmail, $message, $subject);
+            
+            if ($emailSent) {
+                return ['success' => true, 'message' => 'Cash payment code sent successfully'];
+            } else {
+                $errorMessage = isset($_SESSION['mailError']) ? $_SESSION['mailError'] : 'Email service unavailable';
+                return ['success' => false, 'message' => 'Failed to send cash payment code: ' . $errorMessage];
+            }
+            
+        } catch (Exception $e) {
+            error_log('Cash payment email sending failed: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Failed to send cash payment code: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Get cash payment email template
+     */
+    private function getCashPaymentEmailTemplate($verificationCode, $workerName, $amount, $serviceRequestId) {
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <h2 style='color: #28a745; text-align: center;'>Cash Payment Verification</h2>
+                
+                <p>Hi $workerName,</p>
+                
+                <p>A customer has completed their service and chosen to pay with cash. Please use the verification code below to confirm receipt of payment:</p>
+                
+                <div style='background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;'>
+                    <h3 style='margin: 0 0 10px 0; color: #28a745;'>Service Details:</h3>
+                    <p style='margin: 5px 0;'><strong>Service Request ID:</strong> #$serviceRequestId</p>
+                    <p style='margin: 5px 0;'><strong>Amount:</strong> \$$amount</p>
+                </div>
+                
+                <div style='background-color: #28a745; color: white; padding: 20px; text-align: center; margin: 20px 0; border-radius: 5px;'>
+                    <h1 style='margin: 0; font-size: 32px; letter-spacing: 5px;'>$verificationCode</h1>
+                    <p style='margin: 10px 0 0 0; font-size: 14px;'>Verification Code</p>
+                </div>
+                
+                <div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #856404;'>Important Instructions:</h4>
+                    <ul style='margin: 0; padding-left: 20px; color: #856404;'>
+                        <li>Only enter this code after you have received the cash payment from the customer</li>
+                        <li>This code expires in 24 hours</li>
+                        <li>Do not share this code with anyone</li>
+                        <li>Contact support if you have any issues</li>
+                    </ul>
+                </div>
+                
+                <p>To confirm the payment, please:</p>
+                <ol>
+                    <li>Log into your worker dashboard</li>
+                    <li>Go to the 'Payments' section</li>
+                    <li>Enter the verification code above</li>
+                </ol>
+                
+                <p>Thank you for your service!</p>
+                
+                <hr style='margin: 30px 0; border: none; border-top: 1px solid #eee;'>
+                <p style='font-size: 12px; color: #666; text-align: center;'>
+                    This is an automated email. Please do not reply to this message.<br>
+                    Local Service Provider - Worker Payment System
+                </p>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+
+    /**
      * Clean up expired OTPs
      */
     public function cleanupExpiredOTPs() {

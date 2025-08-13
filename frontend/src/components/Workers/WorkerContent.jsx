@@ -7,6 +7,7 @@ import ProfileContent from './pages/ProfileContent';
 import ServicesContent from './pages/ServicesContent';
 import WorkHistoryContent from './pages/WorkHistoryContent';
 import EarningsContent from './pages/EarningsContent';
+import PaymentVerificationContent from './pages/PaymentVerificationContent';
 import NotificationsContent from './pages/NotificationsContent';
 import HelpSupportContent from './pages/HelpSupportContent';
 import SettingsContent from './pages/SettingsContent';
@@ -77,6 +78,8 @@ const WorkerContent = ({
             serviceRequests={serviceRequests}
           />
         );
+      case 'payments':
+        return <PaymentVerificationContent />;
       case 'notifications':
         return (
           <NotificationsContent

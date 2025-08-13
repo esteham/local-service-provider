@@ -10,7 +10,8 @@ import {
   FaTools,
   FaHistory,
   FaWallet,
-  FaQuestionCircle
+  FaQuestionCircle,
+  FaShieldAlt
 } from 'react-icons/fa';
 import DashboardSidebar from '../common/DashboardSidebar';
 
@@ -24,6 +25,7 @@ const WorkerSidebar = ({ activeTab, setActiveTab, onLogout }) => {
     { id: 'services', label: 'Services', icon: FaTools },
     { id: 'history', label: 'Work History', icon: FaHistory },
     { id: 'earnings', label: 'Earnings', icon: FaWallet },
+    { id: 'payments', label: 'Payment Verification', icon: FaShieldAlt },
     { id: 'notifications', label: 'Notifications', icon: FaBell },
     { id: 'help', label: 'Help & Support', icon: FaQuestionCircle },
     { id: 'settings', label: 'Settings', icon: FaCog }
