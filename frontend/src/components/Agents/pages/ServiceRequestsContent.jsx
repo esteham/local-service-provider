@@ -38,7 +38,7 @@ const ServiceRequestsContent = () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/admin/service-requests.php`,
+        `${import.meta.env.VITE_API_URL}/backend/api/agents/service-requests.php`,
         { withCredentials: true }
       );
       
@@ -58,7 +58,7 @@ const ServiceRequestsContent = () => {
   const loadWorkers = async () => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/backend/api/admin/workers.php`,
+        `${import.meta.env.VITE_API_URL}/backend/api/agents/workers.php`,
         { withCredentials: true }
       );
       
@@ -72,7 +72,7 @@ const ServiceRequestsContent = () => {
 
   const loadWorkersForZoneArea = async (zoneId, areaId) => {
     try {
-      let url = `${import.meta.env.VITE_API_URL}/backend/api/admin/workers.php?status=active`;
+      let url = `${import.meta.env.VITE_API_URL}/backend/api/agents/workers.php?status=active`;
       
       // Add zone/area filtering parameters
       if (areaId) {
@@ -133,7 +133,7 @@ const ServiceRequestsContent = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/backend/api/admin/assign_worker.php`,
+        `${import.meta.env.VITE_API_URL}/backend/api/agents/assign_worker.php`,
         {
           request_id: state.selectedRequest.id,
           worker_id: state.selectedWorker,
@@ -163,7 +163,7 @@ const ServiceRequestsContent = () => {
   const handleStatusUpdate = async (requestId, newStatus) => {
     try {
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/backend/api/admin/service-requests.php?id=${requestId}`,
+        `${import.meta.env.VITE_API_URL}/backend/api/agents/service-requests.php?id=${requestId}`,
         {
           action: 'update_status',
           status: newStatus
