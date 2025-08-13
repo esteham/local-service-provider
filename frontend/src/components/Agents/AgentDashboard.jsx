@@ -43,12 +43,10 @@ const AgentDashboard = () => {
     try {
       // Load agent-specific data
       const [statsRes, requestsRes, workersRes, notificationsRes] = await Promise.all([
-        axios.get(`${BASE_URL}/backend/api/agents/stats.php`),
-        axios.get(`${BASE_URL}/backend/api/agents/service-requests.php`),
-        axios.get(`${BASE_URL}/backend/api/agents/workers.php`),
-        axios.get(`${BASE_URL}/backend/api/agents/notifications.php`),{
-          withCredential : true
-        }
+        axios.get('/api/agents/stats.php', { withCredentials: true }),
+        axios.get('/api/agents/service-requests.php', { withCredentials: true }),
+        axios.get('/api/agents/workers.php', { withCredentials: true }),
+        axios.get('/api/agents/notifications.php', { withCredentials: true })
       ]);
 
       if (statsRes.data.success) {

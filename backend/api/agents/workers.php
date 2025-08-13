@@ -25,15 +25,15 @@ if (!$currentUser || $currentUser['role'] !== 'agent') {
 $db = DatabaseConfig::getConnection();
 
 // Get agent ID from session
-$user_id    = $SESSION['user']['id'];
-$agent_query= "SELECT id FROM agents WHERE user_id = ?" 
+$user_id = $_SESSION['user']['id'];
+$agent_query = "SELECT id FROM agents WHERE user_id = ?";
 $agent_stmt = $db->prepare($agent_query);
-$agent_stmt ->execute([$user_id]);
-$agent      = $agent_stmt->fetch(PDO::FETCH_ASSOC);
+$agent_stmt->execute([$user_id]);
+$agent = $agent_stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$agent){
+if (!$agent) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Agent not fount']);
+    echo json_encode(['success' => false, 'message' => 'Agent not found']);
     exit;
 }
 
@@ -43,10 +43,8 @@ try {
     // Get agent record to find their zone/area
     $agentQuery = "SELECT * FROM agents WHERE user_id = ?";
     $agentStmt = $db->prepare($agentQuery);
-    $agentStmt->bind_param("i", $agentId);
-    $agentStmt->execute();
-    $agentResult = $agentStmt->get_result();
-    $agent = $agentResult->fetch_assoc();
+    $agentStmt->execute([$user_id]);
+    $agent = $agentStmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$agent) {
         // Return fallback workers data if agent record not found
@@ -101,12 +99,10 @@ try {
                         ORDER BY rating DESC, completed_jobs DESC";
         
         $workersStmt = $db->prepare($workersQuery);
-        $workersStmt->bind_param("ii", $agent['zone_id'], $agent['area_id']);
-        $workersStmt->execute();
-        $workersResult = $workersStmt->get_result();
+        $workersStmt->execute([$agent['zone_id'], $agent['area_id']]);
         
         $workers = [];
-        while ($worker = $workersResult->fetch_assoc()) {
+        while ($worker = $workersStmt->fetch(PDO::FETCH_ASSOC)) {
             $workers[] = [
                 'id' => $worker['id'],
                 'user_id' => $worker['user_id'],

@@ -25,15 +25,15 @@ if (!$currentUser || $currentUser['role'] !== 'agent') {
 $db = DatabaseConfig::getConnection();
 
 // Get agent ID from session
-$user_id    = $SESSION['user']['id'];
-$agent_query= "SELECT id FROM agents WHERE user_id = ?" 
+$user_id = $_SESSION['user']['id'];
+$agent_query = "SELECT id FROM agents WHERE user_id = ?";
 $agent_stmt = $db->prepare($agent_query);
-$agent_stmt ->execute([$user_id]);
-$agent      = $agent_stmt->fetch(PDO::FETCH_ASSOC);
+$agent_stmt->execute([$user_id]);
+$agent = $agent_stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$agent){
+if (!$agent) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Agent not fount']);
+    echo json_encode(['success' => false, 'message' => 'Agent not found']);
     exit;
 }
 
@@ -47,12 +47,10 @@ try {
                           LIMIT 50";
     
     $notificationsStmt = $db->prepare($notificationsQuery);
-    $notificationsStmt->bind_param("i", $agentId);
-    $notificationsStmt->execute();
-    $notificationsResult = $notificationsStmt->get_result();
+    $notificationsStmt->execute([$user_id]);
     
     $notifications = [];
-    while ($notification = $notificationsResult->fetch_assoc()) {
+    while ($notification = $notificationsStmt->fetch(PDO::FETCH_ASSOC)) {
         $notifications[] = [
             'id' => $notification['id'],
             'title' => $notification['title'],

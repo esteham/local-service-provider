@@ -25,15 +25,15 @@ if (!$currentUser || $currentUser['role'] !== 'agent') {
 $db = DatabaseConfig::getConnection();
 
 // Get agent ID from session
-$user_id    = $SESSION['user']['id'];
-$agent_query= "SELECT id FROM agents WHERE user_id = ?" 
+$user_id = $_SESSION['user']['id'];
+$agent_query = "SELECT id FROM agents WHERE user_id = ?";
 $agent_stmt = $db->prepare($agent_query);
-$agent_stmt ->execute([$user_id]);
-$agent      = $agent_stmt->fetch(PDO::FETCH_ASSOC);
+$agent_stmt->execute([$user_id]);
+$agent = $agent_stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$agent){
+if (!$agent) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Agent not fount']);
+    echo json_encode(['success' => false, 'message' => 'Agent not found']);
     exit;
 }
 
@@ -44,10 +44,8 @@ try {
     // Get agent record
     $agentQuery = "SELECT * FROM agents WHERE user_id = ?";
     $agentStmt = $db->prepare($agentQuery);
-    $agentStmt->bind_param("i", $agentId);
-    $agentStmt->execute();
-    $agentResult = $agentStmt->get_result();
-    $agent = $agentResult->fetch_assoc();
+    $agentStmt->execute([$user_id]);
+    $agent = $agentStmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$agent) {
         // Return fallback service requests if agent record not found
@@ -95,12 +93,10 @@ try {
                          LIMIT 50";
         
         $requestsStmt = $db->prepare($requestsQuery);
-        $requestsStmt->bind_param("ii", $agent['zone_id'], $agent['area_id']);
-        $requestsStmt->execute();
-        $requestsResult = $requestsStmt->get_result();
+        $requestsStmt->execute([$agent['zone_id'], $agent['area_id']]);
         
         $serviceRequests = [];
-        while ($request = $requestsResult->fetch_assoc()) {
+        while ($request = $requestsStmt->fetch(PDO::FETCH_ASSOC)) {
             $serviceRequests[] = [
                 'id' => $request['id'],
                 'service_name' => $request['service_name'] ?? 'Unknown Service',

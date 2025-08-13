@@ -25,15 +25,15 @@ if (!$currentUser || $currentUser['role'] !== 'agent') {
 $db = DatabaseConfig::getConnection();
 
 // Get agent ID from session
-$user_id    = $SESSION['user']['id'];
-$agent_query= "SELECT id FROM agents WHERE user_id = ?" 
+$user_id = $_SESSION['user']['id'];
+$agent_query = "SELECT id FROM agents WHERE user_id = ?";
 $agent_stmt = $db->prepare($agent_query);
-$agent_stmt ->execute([$user_id]);
-$agent      = $agent_stmt->fetch(PDO::FETCH_ASSOC);
+$agent_stmt->execute([$user_id]);
+$agent = $agent_stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$agent){
+if (!$agent) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Agent not fount']);
+    echo json_encode(['success' => false, 'message' => 'Agent not found']);
     exit;
 }
 
@@ -44,10 +44,8 @@ try {
     // Get agent record
     $agentQuery = "SELECT * FROM agents WHERE user_id = ?";
     $agentStmt = $db->prepare($agentQuery);
-    $agentStmt->bind_param("i", $agentId);
-    $agentStmt->execute();
-    $agentResult = $agentStmt->get_result();
-    $agent = $agentResult->fetch_assoc();
+    $agentStmt->execute([$user_id]);
+    $agent = $agentStmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$agent) {
         // Create fallback stats for agents without database record
@@ -67,25 +65,25 @@ try {
                          JOIN areas a ON sr.area_id = a.id 
                          WHERE (a.zone_id = ? OR a.id = ?)";
         $requestsStmt = $db->prepare($requestsQuery);
-        $requestsStmt->bind_param("ii", $agent['zone_id'], $agent['area_id']);
-        $requestsStmt->execute();
-        $totalRequests = $requestsStmt->get_result()->fetch_assoc()['total'] ?? 0;
+        $requestsStmt->execute([$agent['zone_id'], $agent['area_id']]);
+        $result = $requestsStmt->fetch(PDO::FETCH_ASSOC);
+        $totalRequests = $result['total'] ?? 0;
         
         // Get active workers in agent's area/zone
         $workersQuery = "SELECT COUNT(*) as total FROM workers w 
                         JOIN users u ON w.user_id = u.id 
                         WHERE (w.zone_id = ? OR w.area_id = ?) AND u.status = 'active'";
         $workersStmt = $db->prepare($workersQuery);
-        $workersStmt->bind_param("ii", $agent['zone_id'], $agent['area_id']);
-        $workersStmt->execute();
-        $activeWorkers = $workersStmt->get_result()->fetch_assoc()['total'] ?? 0;
+        $workersStmt->execute([$agent['zone_id'], $agent['area_id']]);
+        $result = $workersStmt->fetch(PDO::FETCH_ASSOC);
+        $activeWorkers = $result['total'] ?? 0;
         
         // Get assignments (tasks created by this agent)
         $assignmentsQuery = "SELECT COUNT(*) as total FROM tasks WHERE assigned_by = ?";
         $assignmentsStmt = $db->prepare($assignmentsQuery);
-        $assignmentsStmt->bind_param("i", $agentId);
-        $assignmentsStmt->execute();
-        $assignments = $assignmentsStmt->get_result()->fetch_assoc()['total'] ?? 0;
+        $assignmentsStmt->execute([$agentId]);
+        $result = $assignmentsStmt->fetch(PDO::FETCH_ASSOC);
+        $assignments = $result['total'] ?? 0;
         
         $stats = [
             'totalRequests' => $totalRequests,

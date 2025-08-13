@@ -139,6 +139,7 @@ const UserProfile = () => {
         toast.success('Profile updated successfully');
         setIsEditing(false);
         setProfile(response.data.data);
+        reset(response.data.data) //Reset form with new data
       } else {
         toast.error(response.data.message || 'Update failed');
       }
