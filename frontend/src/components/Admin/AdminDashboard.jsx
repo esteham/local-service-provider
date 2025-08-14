@@ -49,7 +49,11 @@ import PendingUsersContent from "./pages/PendingUsersContent";
 
 const ModernAdminDashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState("dashboard");
+
+  //Load active tab from localStorage or default to dashboard
+  const [activeTab, setActiveTab] = useState(
+    localStorage.getItem("adminActiveTab") || "dashboard"
+  );
   const [adminStats, setAdminStats] = useState({});
   const [serviceRequests, setServiceRequests] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -89,6 +93,12 @@ const ModernAdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_URL;
+
+  //Handel tab change and persist to localStorage
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem("adminActiveTab", tab);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -798,7 +808,7 @@ const handleCloseCategoryModal = () => {
       title="Admin Panel"
       menuItems={menuItems}
       activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      setActiveTab={handleTabChange}
       onLogout={handleLogout}
       avatarIcon={FaUserShield}
       gradientColors={["#3f7567ff", "#292c0eff"]}
