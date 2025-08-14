@@ -101,10 +101,17 @@ function handlePost() {
             }
             
             // Validate service request belongs to user and is completed
-            $request = $serviceRequest->getServiceRequestById($serviceRequestId);
-            if (!$request || $request['user_id'] != $userId) {
+            $requestResult = $serviceRequest->getServiceRequestById($serviceRequestId);
+            if (!$requestResult['success']) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Service request not found']);
+                return;
+            }
+            
+            $request = $requestResult['data'];
+            if ($request['user_id'] != $userId) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Service request not found or access denied']);
+                echo json_encode(['success' => false, 'message' => 'Access denied']);
                 return;
             }
             
@@ -210,7 +217,7 @@ function getPendingPayments($userId) {
         ORDER BY sr.completed_at DESC
     ";
     
-    $db = new DB();
-    return $db->query($query, [$userId, $userId]) ?: [];
+    $db = DB::getInstance();
+    return $db->fetchAll($query, [$userId, $userId]) ?: [];
 }
 ?>

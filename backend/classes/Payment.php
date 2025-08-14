@@ -7,7 +7,7 @@ class Payment {
     private $emailService;
     
     public function __construct() {
-        $this->db = new DB();
+        $this->db = DB::getInstance();
         $this->emailService = new EmailService();
     }
     
@@ -28,7 +28,7 @@ class Payment {
                 'payment_status' => 'pending'
             ];
             
-            $paymentId = $this->db->create('payments', $paymentData);
+            $paymentId = $this->db->insert('payments', $paymentData);
             
             // Update service request status to payment_pending
             $this->db->update('service_requests', 
@@ -88,7 +88,7 @@ class Payment {
                 'expires_at' => $expiresAt
             ];
             
-            $this->db->create('cash_payment_codes', $codeData);
+            $this->db->insert('cash_payment_codes', $codeData);
             
             // Update payment status
             $this->db->update('payments', 
@@ -97,7 +97,7 @@ class Payment {
             );
             
             // Get worker email
-            $worker = $this->db->query(
+            $worker = $this->db->fetch(
                 "SELECT u.email, u.first_name, u.last_name, w.phone 
                  FROM workers w 
                  JOIN users u ON w.user_id = u.id 
@@ -108,8 +108,8 @@ class Payment {
             if ($worker) {
                 // Send verification code to worker's email
                 $emailSent = $this->emailService->sendCashPaymentCode(
-                    $worker[0]['email'],
-                    $worker[0]['first_name'] . ' ' . $worker[0]['last_name'],
+                    $worker['email'],
+                    $worker['first_name'] . ' ' . $worker['last_name'],
                     $verificationCode,
                     $payment['amount'],
                     $payment['service_request_id']
@@ -153,21 +153,19 @@ class Payment {
             $this->db->beginTransaction();
             
             // Find valid code
-            $codeRecord = $this->db->query(
+            $code = $this->db->fetch(
                 "SELECT * FROM cash_payment_codes 
                  WHERE verification_code = ? AND worker_id = ? 
                  AND is_used = FALSE AND expires_at > NOW()",
                 [$verificationCode, $workerId]
             );
             
-            if (!$codeRecord) {
+            if (!$code) {
                 return [
                     'success' => false,
                     'message' => 'Invalid or expired verification code'
                 ];
             }
-            
-            $code = $codeRecord[0];
             
             // Mark code as used
             $this->db->update('cash_payment_codes',
@@ -254,10 +252,10 @@ class Payment {
         if (!$payment) return;
         
         // Get commission rate from settings
-        $commissionRate = $this->db->query(
+        $commissionRateRecord = $this->db->fetch(
             "SELECT setting_value FROM system_settings WHERE setting_key = 'payment_commission_rate'"
         );
-        $commissionRate = $commissionRate ? floatval($commissionRate[0]['setting_value']) : 10.00;
+        $commissionRate = $commissionRateRecord ? floatval($commissionRateRecord['setting_value']) : 10.00;
         
         $grossAmount = floatval($payment['amount']);
         $commissionAmount = ($grossAmount * $commissionRate) / 100;
@@ -274,22 +272,21 @@ class Payment {
             'status' => 'pending'
         ];
         
-        $this->db->create('worker_earnings', $earningsData);
+        $this->db->insert('worker_earnings', $earningsData);
     }
     
     /**
      * Get payment by ID
      */
     public function getPaymentById($paymentId) {
-        $result = $this->db->query("SELECT * FROM payments WHERE id = ?", [$paymentId]);
-        return $result ? $result[0] : null;
+        return $this->db->fetch("SELECT * FROM payments WHERE id = ?", [$paymentId]);
     }
     
     /**
      * Get payments for a service request
      */
     public function getPaymentsByServiceRequest($serviceRequestId) {
-        return $this->db->query(
+        return $this->db->fetchAll(
             "SELECT * FROM payments WHERE service_request_id = ? ORDER BY created_at DESC",
             [$serviceRequestId]
         );
@@ -299,7 +296,7 @@ class Payment {
      * Get user's payment history
      */
     public function getUserPayments($userId, $limit = 50, $offset = 0) {
-        return $this->db->query(
+        return $this->db->fetchAll(
             "SELECT p.*, sr.title, sr.service_type, s.name as service_name
              FROM payments p
              JOIN service_requests sr ON p.service_request_id = sr.id
@@ -323,7 +320,7 @@ class Payment {
             'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? null
         ];
         
-        $this->db->create('payment_logs', $logData);
+        $this->db->insert('payment_logs', $logData);
     }
     
     /**

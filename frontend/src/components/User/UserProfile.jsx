@@ -70,10 +70,12 @@ const UserProfile = () => {
         }
         
         if (requestsRes.data.success) {
+          console.log('Service requests received:', requestsRes.data.data);
           setRequests(requestsRes.data.data);
         }
         
         if (pendingPaymentsRes.data.success) {
+          console.log('Pending payments received:', pendingPaymentsRes.data.data);
           setPendingPayments(pendingPaymentsRes.data.data);
         }
       } catch (err) {
@@ -250,7 +252,11 @@ const UserProfile = () => {
   };
 
   const isPaymentPending = (requestId) => {
-    return pendingPayments.some(payment => payment.id === requestId);
+    console.log('Checking payment pending for request ID:', requestId);
+    console.log('Available pending payments:', pendingPayments);
+    const result = pendingPayments.some(payment => payment.id === requestId);
+    console.log('Payment pending result:', result);
+    return result;
   };
 
   if (isLoading) {
@@ -545,28 +551,38 @@ const UserProfile = () => {
                                 {request.final_price ? `$${request.final_price}` : `$${request.base_price}`}
                               </td>
                               <td>
-                                {request.status === 'completed' && isPaymentPending(request.id) ? (
-                                  <Button 
-                                    variant="success" 
-                                    size="sm"
-                                    onClick={() => handlePayNow(request)}
-                                  >
-                                    <i className="bi bi-credit-card me-1"></i>
-                                    Pay Now
-                                  </Button>
-                                ) : request.status === 'paid' ? (
-                                  <Badge bg="success" className="px-2 py-1">
-                                    <i className="bi bi-check-circle me-1"></i>
-                                    Paid
-                                  </Badge>
-                                ) : request.status === 'payment_pending' ? (
-                                  <Badge bg="warning" className="px-2 py-1">
-                                    <i className="bi bi-clock me-1"></i>
-                                    Payment Processing
-                                  </Badge>
-                                ) : (
-                                  <span className="text-muted">-</span>
-                                )}
+                                {(() => {
+                                  console.log(`Request ${request.id}: status=${request.status}, payment_status=${request.payment_status}`);
+                                   
+                                  if (request.status === 'completed' && (!request.payment_status || request.payment_status === 'pending')) {
+                                    return (
+                                      <Button 
+                                        variant="success" 
+                                        size="sm"
+                                        onClick={() => handlePayNow(request)}
+                                      >
+                                        <i className="bi bi-credit-card me-1"></i>
+                                        Pay Now
+                                      </Button>
+                                    );
+                                  } else if (request.status === 'paid' || request.payment_status === 'paid') {
+                                    return (
+                                      <Badge bg="success" className="px-2 py-1">
+                                        <i className="bi bi-check-circle me-1"></i>
+                                        Paid
+                                      </Badge>
+                                    );
+                                  } else if (request.status === 'payment_pending' || request.payment_status === 'processing') {
+                                    return (
+                                      <Badge bg="warning" className="px-2 py-1">
+                                        <i className="bi bi-clock me-1"></i>
+                                        Payment Processing
+                                      </Badge>
+                                    );
+                                  } else {
+                                    return <span className="text-muted">-</span>;
+                                  }
+                                })()}
                               </td>
                             </tr>
                           ))}

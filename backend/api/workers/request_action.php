@@ -114,6 +114,7 @@ try {
             }
             $updateData = [
                 'status' => 'completed',
+                'payment_status' => 'pending',
                 'completed_at' => date('Y-m-d H:i:s')
             ];
             $notificationTitle = 'Service Completed';
