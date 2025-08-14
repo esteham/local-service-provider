@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
@@ -6,17 +7,29 @@ import { toast } from 'react-toastify';
 import WorkerSidebar from './WorkerSidebar';
 import WorkerContent from './WorkerContent';
 import DashboardLayout from '../common/DashboardLayout';
+import { set } from 'react-hook-form';
 
 const WorkerDashboard = () => {
   const { user, logout } = useAuth();
-  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost';
   const [serviceRequests, setServiceRequests] = useState([]);
   const [workerStats, setWorkerStats] = useState({});
   const [availability, setAvailability] = useState('available');
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [notifications, setNotifications] = useState([]);
-  const [activeTab, setActiveTab] = useState('dashboard');
+
+  //Load active tab from localStorage or default to dashboard
+  const [activeTab, setActiveTab] = useState(
+    localStorage.getItem("workerActiveTab") || "dashboard"
+  );
+
+  const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost';
+
+  //Handel tab change and persist to localStorage
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem("workerActiveTab", tab);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -123,7 +136,7 @@ const WorkerDashboard = () => {
       sidebar={
         <WorkerSidebar 
           activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
+          setActiveTab={handleTabChange} 
           onLogout={handleLogout}
         />
       }
