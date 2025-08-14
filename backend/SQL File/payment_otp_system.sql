@@ -63,6 +63,7 @@ ADD COLUMN IF NOT EXISTS slip_generated BOOLEAN DEFAULT FALSE;
 CREATE OR REPLACE VIEW worker_payment_history AS
 SELECT 
     p.id as payment_id,
+    p.worker_id,
     p.amount,
     p.payment_method,
     p.payment_status,
@@ -73,7 +74,7 @@ SELECT
     sr.title as service_title,
     s.name as service_name,
     s.description as service_description,
-    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+    u.username as customer_name,
     u.email as customer_email,
     ps.slip_number,
     ps.transaction_id
@@ -88,6 +89,7 @@ WHERE p.worker_id IS NOT NULL;
 CREATE OR REPLACE VIEW user_payment_history AS
 SELECT 
     p.id as payment_id,
+    p.user_id,
     p.amount,
     p.payment_method,
     p.payment_status,
@@ -98,7 +100,7 @@ SELECT
     sr.title as service_title,
     s.name as service_name,
     s.description as service_description,
-    CONCAT(w_user.first_name, ' ', w_user.last_name) as worker_name,
+    COALESCE(CONCAT(w.first_name, ' ', w.last_name), w_user.username) as worker_name,
     w.phone as worker_phone,
     ps.slip_number,
     ps.transaction_id
