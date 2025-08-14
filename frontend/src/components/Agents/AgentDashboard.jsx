@@ -26,13 +26,23 @@ import ServiceRequestsContent from './pages/ServiceRequestsContent';
 
 const AgentDashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+
+  //Load active tab from localStorage or default to dashboard
+  const [activeTab, setActiveTab] = useState(
+    localStorage.getItem("agentActiveTab") || "dashboard"
+  );
   const [agentStats, setAgentStats] = useState({});
   const [serviceRequests, setServiceRequests] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const BASE_URL = import.meta.env.VITE_API_URL;
+
+  //Handle tab change and persist to localStroage
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem("agentActiveTab", tab);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -94,7 +104,7 @@ const AgentDashboard = () => {
       title="Agent Panel"
       menuItems={menuItems}
       activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      setActiveTab={handleTabChange}
       onLogout={handleLogout}
       avatarIcon={FaUserTie}
       gradientColors={['#1e3a8a', '#3730a3']}
