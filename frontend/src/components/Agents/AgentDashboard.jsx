@@ -44,7 +44,6 @@ const AgentDashboard = () => {
     localStorage.setItem("agentActiveTab", tab);
   };
   
-
   useEffect(() => {
     loadDashboardData();
   }, []);
