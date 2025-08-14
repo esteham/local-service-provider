@@ -76,6 +76,46 @@ function handleGet() {
             ]);
             break;
             
+        case 'slip':
+            $paymentId = $_GET['payment_id'] ?? null;
+            $slipNumber = $_GET['slip_number'] ?? null;
+            
+            if ($paymentId) {
+                $slip = $payment->getPaymentSlip($paymentId);
+            } elseif ($slipNumber) {
+                $slip = $payment->getPaymentSlipByNumber($slipNumber);
+            } else {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Payment ID or slip number is required']);
+                return;
+            }
+            
+            if (!$slip || $slip['user_id'] != $userId) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Payment slip not found']);
+                return;
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $slip,
+                'message' => 'Payment slip retrieved successfully'
+            ]);
+            break;
+            
+        case 'history_with_slips':
+            $limit = intval($_GET['limit'] ?? 50);
+            $offset = intval($_GET['offset'] ?? 0);
+            
+            $payments = $payment->getUserPaymentHistoryWithSlips($userId, $limit, $offset);
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $payments,
+                'message' => 'Payment history with slips retrieved successfully'
+            ]);
+            break;
+            
         default:
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Invalid action']);
@@ -136,18 +176,18 @@ function handlePost() {
             if ($result['success']) {
                 // If cash payment, generate verification code
                 if ($paymentMethod === 'cash') {
-                    $codeResult = $payment->processCashPayment($result['payment_id']);
-                    if ($codeResult['success']) {
+                    $otpResult = $payment->processCashPayment($result['payment_id']);
+                    if ($otpResult['success']) {
                         echo json_encode([
                             'success' => true,
                             'payment_id' => $result['payment_id'],
                             'payment_method' => 'cash',
-                            'verification_code' => $codeResult['verification_code'],
-                            'expires_at' => $codeResult['expires_at'],
-                            'message' => 'Cash payment initiated. Verification code sent to worker.'
+                            'otp_code' => $otpResult['otp_code'],
+                            'expires_at' => $otpResult['expires_at'],
+                            'message' => 'Cash payment initiated. OTP sent to worker\'s email.'
                         ]);
                     } else {
-                        echo json_encode($codeResult);
+                        echo json_encode($otpResult);
                     }
                 } else {
                     // For online payment, return payment details for frontend processing
@@ -183,6 +223,19 @@ function handlePost() {
             }
             
             $result = $payment->processOnlinePayment($paymentId, $paymentData);
+            echo json_encode($result);
+            break;
+            
+        case 'verify_otp':
+            $otpCode = $input['otp_code'] ?? null;
+            
+            if (!$otpCode) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'OTP code is required']);
+                return;
+            }
+            
+            $result = $payment->verifyPaymentOTP($otpCode, $userId);
             echo json_encode($result);
             break;
             

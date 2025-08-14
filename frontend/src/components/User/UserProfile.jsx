@@ -45,6 +45,10 @@ const UserProfile = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [pendingPayments, setPendingPayments] = useState([]);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState([]);
 
   const { register, handleSubmit, reset, formState: { errors }, watch } = useForm();
   const { register: registerPassword, handleSubmit: handlePasswordSubmit, reset: resetPassword, formState: { errors: passwordErrors }, watch: watchPassword } = useForm();
@@ -58,10 +62,11 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, requestsRes, pendingPaymentsRes] = await Promise.all([
+        const [profileRes, requestsRes, pendingPaymentsRes, paymentHistoryRes] = await Promise.all([
           axios.get(`${BASE_URL}/backend/api/user/profile.php`, { withCredentials: true }),
           axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true }),
-          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true })
+          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true }),
+          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=history_with_slips`, { withCredentials: true })
         ]);
         
         if (profileRes.data.success) {
@@ -77,6 +82,11 @@ const UserProfile = () => {
         if (pendingPaymentsRes.data.success) {
           console.log('Pending payments received:', pendingPaymentsRes.data.data);
           setPendingPayments(pendingPaymentsRes.data.data);
+        }
+        
+        if (paymentHistoryRes.data.success) {
+          console.log('Payment history received:', paymentHistoryRes.data.data);
+          setPaymentHistory(paymentHistoryRes.data.data);
         }
       } catch (err) {
         setError('Failed to load data');
@@ -199,55 +209,153 @@ const UserProfile = () => {
     }
 
     setIsProcessingPayment(true);
+    
     try {
-      const response = await axios.post(
-        `${BASE_URL}/backend/api/user/payment.php`,
-        {
-          action: 'initiate',
-          service_request_id: selectedPayment.id,
-          payment_method: paymentMethod
-        },
-        { withCredentials: true }
-      );
+      const response = await axios.post(`${BASE_URL}/backend/api/user/payment.php`, {
+        action: 'initiate',
+        service_request_id: selectedPayment.id,
+        payment_method: paymentMethod
+      }, { withCredentials: true });
 
       if (response.data.success) {
         if (paymentMethod === 'cash') {
-          toast.success('Cash payment initiated! Verification code sent to worker.');
+          toast.success('Payment initiated! OTP sent to worker.');
+          toast.info('Enter the OTP from the worker to confirm payment.');
           setShowPaymentModal(false);
-          // Refresh data to update payment status
-          window.location.reload();
-        } else if (paymentMethod === 'online') {
-          // For online payment, simulate payment processing
-          const onlinePaymentResponse = await axios.post(
-            `${BASE_URL}/backend/api/user/payment.php`,
-            {
-              action: 'process_online',
-              payment_id: response.data.payment_id,
-              payment_data: {
-                transaction_id: 'TXN_' + Date.now(),
-                gateway: 'demo_gateway',
-                status: 'success'
-              }
-            },
-            { withCredentials: true }
-          );
-
-          if (onlinePaymentResponse.data.success) {
+          setShowOTPModal(true);
+        } else {
+          // Handle online payment
+          const paymentData = {
+            payment_id: response.data.payment_id,
+            card_number: '4111111111111111', // Demo card
+            expiry: '12/25',
+            cvv: '123',
+            amount: selectedPayment.final_price || selectedPayment.base_price
+          };
+          
+          const onlineResult = await axios.post(`${BASE_URL}/backend/api/user/payment.php`, {
+            action: 'process_online',
+            payment_id: response.data.payment_id,
+            payment_data: paymentData
+          }, { withCredentials: true });
+          
+          if (onlineResult.data.success) {
             toast.success('Payment completed successfully!');
             setShowPaymentModal(false);
-            window.location.reload();
+            await refreshPaymentData();
           } else {
-            toast.error(onlinePaymentResponse.data.message || 'Payment processing failed');
+            toast.error(onlineResult.data.message || 'Payment processing failed');
           }
         }
+        
+        // Reset form
+        setPaymentMethod('');
+        setSelectedPayment(null);
+        
       } else {
         toast.error(response.data.message || 'Failed to initiate payment');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error('Payment processing failed. Please try again.');
+      toast.error('An error occurred while processing payment');
     } finally {
       setIsProcessingPayment(false);
+    }
+  };
+
+  const handleOTPSubmit = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+
+    setIsVerifyingOTP(true);
+    
+    try {
+      const response = await axios.post(`${BASE_URL}/backend/api/user/payment.php`, {
+        action: 'verify_otp',
+        otp_code: otpCode
+      }, { withCredentials: true });
+
+      if (response.data.success) {
+        toast.success('Payment verified and completed successfully!');
+        if (response.data.slip_number) {
+          toast.info(`Payment receipt: ${response.data.slip_number}`);
+        }
+        setShowOTPModal(false);
+        setOtpCode('');
+        await refreshPaymentData();
+      } else {
+        toast.error(response.data.message || 'Invalid OTP code');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      toast.error('An error occurred while verifying OTP');
+    } finally {
+      setIsVerifyingOTP(false);
+    }
+  };
+  
+  const refreshPaymentData = async () => {
+    try {
+      const [pendingRes, historyRes] = await Promise.all([
+        axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/user/payment.php?action=history_with_slips`, { withCredentials: true })
+      ]);
+      
+      if (pendingRes.data.success) {
+        setPendingPayments(pendingRes.data.data);
+      }
+      
+      if (historyRes.data.success) {
+        setPaymentHistory(historyRes.data.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing payment data:', error);
+    }
+  };
+  
+  const downloadPaymentSlip = async (paymentId, slipNumber) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/backend/api/user/payment.php?action=slip&payment_id=${paymentId}`, { withCredentials: true });
+      
+      if (response.data.success) {
+        const slip = response.data.data;
+        // Create a simple text receipt for download
+        const receiptText = `
+PAYMENT RECEIPT
+===============
+
+Receipt #: ${slip.slip_number}
+Service: ${slip.service_name}
+Service Provider: ${slip.worker_name}
+Amount: $${slip.amount}
+Payment Method: ${slip.payment_method.charAt(0).toUpperCase() + slip.payment_method.slice(1)}
+Payment Date: ${new Date(slip.payment_date).toLocaleString()}
+${slip.transaction_id ? `Transaction ID: ${slip.transaction_id}\n` : ''}
+Status: Completed and Verified
+
+${slip.service_description ? `Description: ${slip.service_description}\n\n` : ''}Generated on: ${new Date().toLocaleString()}
+Local Service Provider
+        `;
+        
+        const blob = new Blob([receiptText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `receipt-${slipNumber}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast.success('Payment receipt downloaded successfully!');
+      } else {
+        toast.error('Failed to download payment receipt');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('An error occurred while downloading receipt');
     }
   };
 
@@ -312,6 +420,14 @@ const UserProfile = () => {
                     className="border-0 py-2"
                   >
                     <i className="bi bi-list-check me-2"></i> Service Requests
+                  </ListGroup.Item>
+                  <ListGroup.Item 
+                    action 
+                    active={activeTab === 'payments'} 
+                    onClick={() => setActiveTab('payments')}
+                    className="border-0 py-2"
+                  >
+                    <i className="bi bi-receipt me-2"></i> Payment History
                   </ListGroup.Item>
                   <ListGroup.Item 
                     action 
@@ -593,6 +709,95 @@ const UserProfile = () => {
                 </div>
               )}
 
+              {activeTab === 'payments' && (
+                <div>
+                  <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h2 className="h4 mb-0">Payment History</h2>
+                    <Badge pill bg="success" className="px-3 py-2">
+                      {paymentHistory.length} {paymentHistory.length === 1 ? 'Payment' : 'Payments'}
+                    </Badge>
+                  </div>
+                  
+                  {paymentHistory.length === 0 ? (
+                    <div className="text-center py-5">
+                      <div className="mb-3">
+                        <i className="bi bi-receipt fs-1 text-muted"></i>
+                      </div>
+                      <h5 className="text-muted">No payment history found</h5>
+                      <p className="text-muted">Your completed payments will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="table-responsive">
+                      <Table hover className="align-middle">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Receipt #</th>
+                            <th>Service</th>
+                            <th>Worker</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paymentHistory.map((payment) => (
+                            <tr key={payment.payment_id}>
+                              <td>
+                                <div className="fw-semibold text-primary">
+                                  {payment.slip_number || `#${payment.payment_id}`}
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <div className="fw-semibold">{payment.service_name}</div>
+                                  <div className="small text-muted">{payment.service_title}</div>
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <div className="fw-semibold">{payment.worker_name}</div>
+                                  {payment.worker_phone && (
+                                    <div className="small text-muted">{payment.worker_phone}</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="fw-bold text-success">
+                                  ${payment.amount}
+                                </div>
+                              </td>
+                              <td>
+                                <Badge bg={payment.payment_method === 'cash' ? 'success' : 'primary'}>
+                                  {payment.payment_method.toUpperCase()}
+                                </Badge>
+                              </td>
+                              <td>
+                                <div className="small">
+                                  {formatDate(payment.payment_date)}
+                                </div>
+                              </td>
+                              <td>
+                                {payment.slip_number && (
+                                  <Button 
+                                    variant="outline-primary" 
+                                    size="sm"
+                                    onClick={() => downloadPaymentSlip(payment.payment_id, payment.slip_number)}
+                                  >
+                                    <i className="bi bi-download me-1"></i>
+                                    Download
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === 'security' && (
                 <div>
                   <h2 className="h4 mb-4">Change Password</h2>
@@ -754,12 +959,13 @@ const UserProfile = () => {
               {paymentMethod === 'cash' && (
                 <Alert variant="info" className="mb-3">
                   <i className="bi bi-info-circle me-2"></i>
-                  <strong>Cash Payment Process:</strong>
+                  <strong>New Cash Payment Process:</strong>
                   <ol className="mb-0 mt-2">
-                    <li>A verification code will be sent to the worker's email</li>
-                    <li>Pay the worker in cash</li>
-                    <li>The worker will enter the code to confirm payment</li>
-                    <li>Your payment will be marked as completed</li>
+                    <li>A 6-digit OTP will be sent to the worker's email</li>
+                    <li>Pay the worker in cash for the service</li>
+                    <li>Get the OTP from the worker and enter it here to confirm payment</li>
+                    <li>Both you and the worker will receive payment slip emails</li>
+                    <li>Download your receipt anytime from Payment History</li>
                   </ol>
                 </Alert>
               )}
@@ -791,6 +997,68 @@ const UserProfile = () => {
               <>
                 <i className="bi bi-check-circle me-2"></i>
                 {paymentMethod === 'cash' ? 'Initiate Cash Payment' : 'Pay Now'}
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
+      {/* OTP Verification Modal */}
+      <Modal show={showOTPModal} onHide={() => setShowOTPModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-shield-lock me-2 text-primary"></i>
+            Enter Payment OTP
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-center mb-4">
+            <div className="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style={{width: '80px', height: '80px'}}>
+              <i className="bi bi-key-fill fs-1 text-primary"></i>
+            </div>
+            <h5 className="mt-3 mb-2">Payment OTP Verification</h5>
+            <p className="text-muted">Enter the 6-digit OTP that was sent to the worker's email</p>
+          </div>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>OTP Code</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Enter 6-digit OTP"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              className="text-center fs-4"
+              style={{letterSpacing: '0.5em'}}
+            />
+            <Form.Text className="text-muted">
+              Ask the worker for the OTP code they received via email
+            </Form.Text>
+          </Form.Group>
+          
+          <Alert variant="warning" className="mb-3">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            <strong>Important:</strong> Only enter the OTP after you have paid the worker in cash.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowOTPModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleOTPSubmit}
+            disabled={!otpCode || otpCode.length !== 6 || isVerifyingOTP}
+          >
+            {isVerifyingOTP ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Verifying...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                Verify Payment
               </>
             )}
           </Button>

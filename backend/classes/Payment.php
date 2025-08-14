@@ -61,34 +61,45 @@ class Payment {
     }
     
     /**
-     * Process cash payment - generate verification code and send to worker
+     * Process cash payment - generate OTP and send to worker
      */
     public function processCashPayment($paymentId) {
         try {
             $this->db->beginTransaction();
             
-            // Get payment details
-            $payment = $this->getPaymentById($paymentId);
+            // Get payment details with service and user info
+            $payment = $this->db->fetch(
+                "SELECT p.*, sr.title, sr.service_id, s.name as service_name, s.description as service_description,
+                        u.username as user_name, u.email as user_email
+                 FROM payments p
+                 JOIN service_requests sr ON p.service_request_id = sr.id
+                 LEFT JOIN services s ON sr.service_id = s.id
+                 JOIN users u ON p.user_id = u.id
+                 WHERE p.id = ?",
+                [$paymentId]
+            );
+            
             if (!$payment) {
                 throw new Exception('Payment not found');
             }
             
-            // Generate 6-digit verification code
-            $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            // Generate 6-digit OTP code
+            $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
             
             // Set expiry time (24 hours from now)
             $expiresAt = date('Y-m-d H:i:s', strtotime('+24 hours'));
             
-            // Save verification code
-            $codeData = [
+            // Save OTP code
+            $otpData = [
                 'payment_id' => $paymentId,
                 'service_request_id' => $payment['service_request_id'],
+                'user_id' => $payment['user_id'],
                 'worker_id' => $payment['worker_id'],
-                'verification_code' => $verificationCode,
+                'otp_code' => $otpCode,
                 'expires_at' => $expiresAt
             ];
             
-            $this->db->insert('cash_payment_codes', $codeData);
+            $this->db->insert('payment_otps', $otpData);
             
             // Update payment status
             $this->db->update('payments', 
@@ -98,7 +109,7 @@ class Payment {
             
             // Get worker email
             $worker = $this->db->fetch(
-                "SELECT u.email, u.first_name, u.last_name, w.phone 
+                "SELECT u.email, u.username, w.first_name, w.last_name, w.phone 
                  FROM workers w 
                  JOIN users u ON w.user_id = u.id 
                  WHERE w.id = ?",
@@ -106,23 +117,29 @@ class Payment {
             );
             
             if ($worker) {
-                // Send verification code to worker's email
-                $emailSent = $this->emailService->sendCashPaymentCode(
+                // Send OTP to worker's email
+                $workerName = ($worker['first_name'] && $worker['last_name']) 
+                    ? $worker['first_name'] . ' ' . $worker['last_name']
+                    : $worker['username'];
+                
+                $emailSent = $this->emailService->sendPaymentOTP(
                     $worker['email'],
-                    $worker['first_name'] . ' ' . $worker['last_name'],
-                    $verificationCode,
+                    $workerName,
+                    $otpCode,
                     $payment['amount'],
-                    $payment['service_request_id']
+                    $payment['service_name'] ?? $payment['title'],
+                    $payment['user_name'],
+                    $expiresAt
                 );
                 
                 if (!$emailSent) {
-                    error_log("Failed to send cash payment code email to worker");
+                    error_log("Failed to send OTP email to worker");
                 }
             }
             
-            // Log action
-            $this->logPaymentAction($paymentId, 'cash_code_generated', [
-                'verification_code' => $verificationCode,
+            // Log cash payment initiation
+            $this->logPaymentAction($paymentId, 'cash_payment_initiated', [
+                'otp_sent' => isset($emailSent) ? $emailSent : false,
                 'expires_at' => $expiresAt
             ]);
             
@@ -130,9 +147,9 @@ class Payment {
             
             return [
                 'success' => true,
-                'verification_code' => $verificationCode,
+                'otp_code' => $otpCode, // For development/testing - remove in production
                 'expires_at' => $expiresAt,
-                'message' => 'Cash payment initiated. Verification code sent to worker.'
+                'message' => 'OTP generated and sent to worker'
             ];
             
         } catch (Exception $e) {
@@ -146,51 +163,80 @@ class Payment {
     }
     
     /**
-     * Verify cash payment code entered by worker
+     * Verify OTP entered by user for payment confirmation
      */
-    public function verifyCashPaymentCode($verificationCode, $workerId) {
+    public function verifyPaymentOTP($otpCode, $userId) {
         try {
             $this->db->beginTransaction();
             
-            // Find valid code
-            $code = $this->db->fetch(
-                "SELECT * FROM cash_payment_codes 
-                 WHERE verification_code = ? AND worker_id = ? 
-                 AND is_used = FALSE AND expires_at > NOW()",
-                [$verificationCode, $workerId]
+            // Find valid OTP code
+            $otpRecord = $this->db->fetch(
+                "SELECT * FROM payment_otps 
+                 WHERE otp_code = ? AND user_id = ? AND expires_at > NOW() AND is_used = 0",
+                [$otpCode, $userId]
             );
             
-            if (!$code) {
+            if (!$otpRecord) {
                 return [
                     'success' => false,
-                    'message' => 'Invalid or expired verification code'
+                    'message' => 'Invalid or expired OTP code'
                 ];
             }
             
-            // Mark code as used
-            $this->db->update('cash_payment_codes',
-                ['is_used' => true, 'used_at' => date('Y-m-d H:i:s')],
-                ['id' => $code['id']]
+            // Mark OTP as used
+            $this->db->update('payment_otps',
+                ['is_used' => 1, 'used_at' => date('Y-m-d H:i:s')],
+                ['id' => $otpRecord['id']]
             );
             
-            // Complete payment
-            $this->completePayment($code['payment_id']);
+            // Update payment with OTP verification
+            $this->db->update('payments',
+                ['otp_verified' => 1, 'otp_verified_at' => date('Y-m-d H:i:s')],
+                ['id' => $otpRecord['payment_id']]
+            );
+            
+            // Complete payment directly (avoid nested transaction)
+            $payment = $this->getPaymentById($otpRecord['payment_id']);
+            
+            // Update payment status to completed
+            $this->db->update('payments', 
+                [
+                    'payment_status' => 'completed',
+                    'completed_at' => date('Y-m-d H:i:s')
+                ],
+                ['id' => $otpRecord['payment_id']]
+            );
+            
+            // Update service request status
+            $this->db->update('service_requests',
+                ['status' => 'paid', 'payment_status' => 'completed'],
+                ['id' => $payment['service_request_id']]
+            );
+            
+            // Generate payment slip
+            $slipResult = $this->generatePaymentSlip($otpRecord['payment_id']);
+            
+            // Send confirmation emails
+            $this->sendPaymentConfirmationEmails($otpRecord['payment_id']);
+            
+            // Log the action
+            $this->logPaymentAction($otpRecord['payment_id'], 'otp_verified');
             
             $this->db->commit();
             
             return [
                 'success' => true,
-                'payment_id' => $code['payment_id'],
-                'service_request_id' => $code['service_request_id'],
-                'message' => 'Cash payment verified and completed successfully'
-            ];
+                'payment_id' => $otpRecord['payment_id'],
+                'slip_number' => $slipResult['slip_number'] ?? null,
+                'message' => 'Payment verified and completed successfully'
+            ];    
             
         } catch (Exception $e) {
             $this->db->rollback();
-            error_log("Cash payment verification failed: " . $e->getMessage());
+            error_log("Payment OTP verification failed: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Failed to verify payment code: ' . $e->getMessage()
+                'message' => 'Failed to verify payment: ' . $e->getMessage()
             ];
         }
     }
@@ -202,30 +248,35 @@ class Payment {
         try {
             $this->db->beginTransaction();
             
-            $payment = $this->getPaymentById($paymentId);
-            if (!$payment) {
-                throw new Exception('Payment not found');
-            }
-            
             // Update payment status
-            $this->db->update('payments',
-                ['payment_status' => 'completed', 'paid_at' => date('Y-m-d H:i:s')],
+            $this->db->update('payments', 
+                [
+                    'payment_status' => 'completed',
+                    'completed_at' => date('Y-m-d H:i:s')
+                ],
                 ['id' => $paymentId]
             );
             
             // Update service request status
+            $payment = $this->getPaymentById($paymentId);
             $this->db->update('service_requests',
-                ['status' => 'paid', 'payment_status' => 'paid'],
+                ['status' => 'paid', 'payment_status' => 'completed'],
                 ['id' => $payment['service_request_id']]
             );
             
             // Calculate worker earnings
             $this->calculateWorkerEarnings($paymentId);
             
-            // Log completion
-            $this->logPaymentAction($paymentId, 'completed', [
-                'completed_at' => date('Y-m-d H:i:s')
-            ]);
+            // Generate payment slip if not already generated
+            if (!$payment['slip_generated']) {
+                $this->generatePaymentSlip($paymentId);
+            }
+            
+            // Send payment confirmation emails to both user and worker
+            $this->sendPaymentConfirmationEmails($paymentId);
+            
+            // Log payment completion
+            $this->logPaymentAction($paymentId, 'completed');
             
             $this->db->commit();
             
@@ -323,67 +374,189 @@ class Payment {
         $this->db->insert('payment_logs', $logData);
     }
     
+
+    
     /**
-     * Process online payment (placeholder for payment gateway integration)
+     * Generate payment slip
      */
-    public function processOnlinePayment($paymentId, $paymentData) {
+    public function generatePaymentSlip($paymentId) {
         try {
-            $this->db->beginTransaction();
+            // Get payment details with all related information
+            $paymentDetails = $this->db->fetch(
+                "SELECT p.*, sr.title, sr.service_id, s.name as service_name, s.description as service_description,
+                        u.first_name as user_first_name, u.last_name as user_last_name, u.email as user_email,
+                        w_user.first_name as worker_first_name, w_user.last_name as worker_last_name, w.phone as worker_phone
+                 FROM payments p
+                 JOIN service_requests sr ON p.service_request_id = sr.id
+                 LEFT JOIN services s ON sr.service_id = s.id
+                 JOIN users u ON p.user_id = u.id
+                 JOIN workers w ON p.worker_id = w.id
+                 JOIN users w_user ON w.user_id = w_user.id
+                 WHERE p.id = ?",
+                [$paymentId]
+            );
             
-            // Update payment with transaction details
-            $updateData = [
-                'payment_status' => 'processing',
-                'transaction_id' => $paymentData['transaction_id'] ?? null,
-                'gateway_response' => json_encode($paymentData)
-            ];
-            
-            $this->db->update('payments', $updateData, ['id' => $paymentId]);
-            
-            // Log processing
-            $this->logPaymentAction($paymentId, 'processing', $paymentData);
-            
-            // Simulate payment processing (replace with actual gateway integration)
-            $success = $this->simulatePaymentGateway($paymentData);
-            
-            if ($success) {
-                $this->completePayment($paymentId);
-                $this->db->commit();
-                
-                return [
-                    'success' => true,
-                    'message' => 'Online payment completed successfully'
-                ];
-            } else {
-                $this->db->update('payments', 
-                    ['payment_status' => 'failed'], 
-                    ['id' => $paymentId]
-                );
-                
-                $this->logPaymentAction($paymentId, 'failed', ['reason' => 'Gateway processing failed']);
-                $this->db->commit();
-                
-                return [
-                    'success' => false,
-                    'message' => 'Payment processing failed'
-                ];
+            if (!$paymentDetails) {
+                throw new Exception('Payment not found');
             }
             
+            // Generate unique slip number
+            $slipNumber = 'PS' . date('Ymd') . str_pad($paymentId, 6, '0', STR_PAD_LEFT);
+            
+            // Create payment slip record
+            $slipData = [
+                'payment_id' => $paymentId,
+                'service_request_id' => $paymentDetails['service_request_id'],
+                'user_id' => $paymentDetails['user_id'],
+                'worker_id' => $paymentDetails['worker_id'],
+                'slip_number' => $slipNumber,
+                'service_name' => $paymentDetails['service_name'] ?? $paymentDetails['title'],
+                'service_description' => $paymentDetails['service_description'] ?? '',
+                'amount' => $paymentDetails['amount'],
+                'payment_method' => $paymentDetails['payment_method'],
+                'payment_date' => $paymentDetails['completed_at'] ?? date('Y-m-d H:i:s'),
+                'worker_name' => $paymentDetails['worker_first_name'] . ' ' . $paymentDetails['worker_last_name'],
+                'worker_phone' => $paymentDetails['worker_phone'],
+                'user_name' => $paymentDetails['user_first_name'] . ' ' . $paymentDetails['user_last_name'],
+                'user_email' => $paymentDetails['user_email'],
+                'transaction_id' => $paymentDetails['transaction_id']
+            ];
+            
+            $this->db->insert('payment_slips', $slipData);
+            
+            // Mark payment as slip generated
+            $this->db->update('payments', 
+                ['slip_generated' => 1],
+                ['id' => $paymentId]
+            );
+            
+            return [
+                'success' => true,
+                'slip_number' => $slipNumber,
+                'message' => 'Payment slip generated successfully'
+            ];
+            
         } catch (Exception $e) {
-            $this->db->rollback();
-            error_log("Online payment processing failed: " . $e->getMessage());
+            error_log("Payment slip generation failed: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Failed to process online payment: ' . $e->getMessage()
+                'message' => 'Failed to generate payment slip: ' . $e->getMessage()
             ];
         }
     }
     
     /**
-     * Simulate payment gateway processing (replace with actual gateway)
+     * Get payment slip by payment ID
      */
-    private function simulatePaymentGateway($paymentData) {
-        // Simulate 95% success rate for demo purposes
-        return rand(1, 100) <= 95;
+    public function getPaymentSlip($paymentId) {
+        return $this->db->fetch("SELECT * FROM payment_slips WHERE payment_id = ?", [$paymentId]);
     }
+    
+    /**
+     * Get payment slip by slip number
+     */
+    public function getPaymentSlipByNumber($slipNumber) {
+        return $this->db->fetch("SELECT * FROM payment_slips WHERE slip_number = ?", [$slipNumber]);
+    }
+    
+    /**
+     * Send payment confirmation emails to both user and worker
+     */
+    private function sendPaymentConfirmationEmails($paymentId) {
+        try {
+            // Get payment slip details
+            $slip = $this->getPaymentSlip($paymentId);
+            if (!$slip) {
+                error_log("Payment slip not found for payment ID: $paymentId");
+                return false;
+            }
+            
+            // Get worker email
+            $worker = $this->db->fetch(
+                "SELECT u.email FROM workers w JOIN users u ON w.user_id = u.id WHERE w.id = ?",
+                [$slip['worker_id']]
+            );
+            
+            // Send email to user
+            $userEmailSent = $this->emailService->sendPaymentSlipEmail(
+                $slip['user_email'],
+                $slip['user_name'],
+                $slip,
+                'user'
+            );
+            
+            // Send email to worker
+            $workerEmailSent = false;
+            if ($worker) {
+                $workerEmailSent = $this->emailService->sendPaymentSlipEmail(
+                    $worker['email'],
+                    $slip['worker_name'],
+                    $slip,
+                    'worker'
+                );
+            }
+            
+            // Log email sending results
+            $this->logPaymentAction($paymentId, 'confirmation_emails_sent', [
+                'user_email_sent' => $userEmailSent,
+                'worker_email_sent' => $workerEmailSent
+            ]);
+            
+            return $userEmailSent && $workerEmailSent;
+            
+        } catch (Exception $e) {
+            error_log("Failed to send payment confirmation emails: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get worker payment history
+     */
+    public function getWorkerPaymentHistory($workerId, $limit = 50, $offset = 0) {
+        return $this->db->fetchAll(
+            "SELECT * FROM worker_payment_history WHERE worker_id = ? ORDER BY payment_date DESC LIMIT ? OFFSET ?",
+            [$workerId, $limit, $offset]
+        );
+    }
+    
+    /**
+     * Get user payment history with slip information
+     */
+    public function getUserPaymentHistoryWithSlips($userId, $limit = 50, $offset = 0) {
+        return $this->db->fetchAll(
+            "SELECT 
+                p.id as payment_id,
+                p.user_id,
+                p.worker_id,
+                p.amount,
+                p.payment_method,
+                p.payment_status,
+                p.otp_verified,
+                p.created_at as payment_date,
+                p.updated_at as last_updated,
+                sr.id as service_request_id,
+                sr.title as service_title,
+                s.name as service_name,
+                s.description as service_description,
+                CONCAT(w_user.first_name, ' ', w_user.last_name) as worker_name,
+                w.phone as worker_phone,
+                ps.slip_number,
+                ps.transaction_id,
+                ps.created_at as slip_created_at
+            FROM payments p
+            JOIN service_requests sr ON p.service_request_id = sr.id
+            LEFT JOIN services s ON sr.service_id = s.id
+            JOIN workers w ON p.worker_id = w.id
+            JOIN users w_user ON w.user_id = w_user.id
+            LEFT JOIN payment_slips ps ON p.id = ps.payment_id
+            WHERE p.user_id = ? 
+            ORDER BY p.created_at DESC 
+            LIMIT ? OFFSET ?",
+            [$userId, $limit, $offset]
+        );
+    }
+
+
 }
 ?>
