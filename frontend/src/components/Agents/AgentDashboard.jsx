@@ -24,6 +24,13 @@ import StatCard from '../common/StatCard';
 import ServiceRequestCard from '../common/ServiceRequestCard';
 import ServiceRequestsContent from './pages/ServiceRequestsContent';
 import WorkersManagementContent from './pages/WorkersManagementContent';
+import AssignmentsContent from './pages/AssignmentsContent';
+import PerformanceContent from './pages/PerformanceContent';
+import ScheduleContent from './pages/ScheduleContent';
+import NegotiationsContent from './pages/NegotiationsContent';
+import PaymentsContent from './pages/PaymentsContent';
+import NotificationsContent from './pages/NotificationsContent';
+import SettingsContent from './pages/SettingsContent';
 const AgentDashboard = () => {
   const { user, logout } = useAuth();
 
@@ -206,19 +213,19 @@ const AgentDashboard = () => {
         case 'workers':
           return <WorkersManagementContent />;
         case 'assignments':
-          return <div><h3>Assignment Management</h3><p>Assignment features coming soon...</p></div>;
+          return <AssignmentsContent />;
         case 'performance':
-          return <div><h3>Performance Analytics</h3><p>Performance metrics coming soon...</p></div>;
+          return <PerformanceContent />;
         case 'schedule':
-          return <div><h3>Schedule Management</h3><p>Schedule features coming soon...</p></div>;
+          return <ScheduleContent />;
         case 'negotiations':
-          return <div><h3>Price Negotiations</h3><p>Negotiation features coming soon...</p></div>;
+          return <NegotiationsContent />;
         case 'payments':
-          return <div><h3>Payment Management</h3><p>Payment features coming soon...</p></div>;
+          return <PaymentsContent />;
         case 'notifications':
-          return <div><h3>Notifications</h3><p>Notification management coming soon...</p></div>;
+          return <NotificationsContent />;
         case 'settings':
-          return <div><h3>Settings</h3><p>Settings panel coming soon...</p></div>;
+          return <SettingsContent />;
         default:
           return renderDashboard();
       }
