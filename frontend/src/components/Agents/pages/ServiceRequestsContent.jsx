@@ -485,7 +485,7 @@ const ServiceRequestsContent = () => {
                     {state.availableWorkers.length > 0 ? (
                       state.availableWorkers.map(worker => (
                         <option key={worker.id} value={worker.id}>
-                          {worker.name} - {worker.specialization}
+                          {worker.first_name} {worker.last_name} - {worker.skills}
                           {worker.area_name && ` (${worker.area_name})`}
                           {!worker.area_name && worker.zone_name && ` (${worker.zone_name})`}
                         </option>

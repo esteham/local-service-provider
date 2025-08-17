@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   FaTachometerAlt,
   FaUsers,
   FaTasks,
@@ -23,7 +23,7 @@ import DashboardSidebar from '../common/DashboardSidebar';
 import StatCard from '../common/StatCard';
 import ServiceRequestCard from '../common/ServiceRequestCard';
 import ServiceRequestsContent from './pages/ServiceRequestsContent';
-
+import WorkersManagementContent from './pages/WorkersManagementContent';
 const AgentDashboard = () => {
   const { user, logout } = useAuth();
 
@@ -198,32 +198,31 @@ const AgentDashboard = () => {
   );
 
   const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return renderDashboard();
-      case 'requests':
-        return <ServiceRequestsContent />;
-      case 'workers':
-        return <div><h3>Worker Management</h3><p>Worker management features coming soon...</p></div>;
-      case 'assignments':
-        return <div><h3>Assignment Management</h3><p>Assignment features coming soon...</p></div>;
-      case 'performance':
-        return <div><h3>Performance Analytics</h3><p>Performance metrics coming soon...</p></div>;
-      case 'schedule':
-        return <div><h3>Schedule Management</h3><p>Schedule features coming soon...</p></div>;
-      case 'negotiations':
-        return <div><h3>Price Negotiations</h3><p>Negotiation features coming soon...</p></div>;
-      case 'payments':
-        return <div><h3>Payment Management</h3><p>Payment features coming soon...</p></div>;
-      case 'notifications':
-        return <div><h3>Notifications</h3><p>Notification management coming soon...</p></div>;
-      case 'settings':
-        return <div><h3>Settings</h3><p>Settings panel coming soon...</p></div>;
-      default:
-        return renderDashboard();
-    }
-  };
-
+      switch (activeTab) {
+        case 'dashboard':
+          return renderDashboard();
+        case 'requests':
+          return <ServiceRequestsContent />;
+        case 'workers':
+          return <WorkersManagementContent />;
+        case 'assignments':
+          return <div><h3>Assignment Management</h3><p>Assignment features coming soon...</p></div>;
+        case 'performance':
+          return <div><h3>Performance Analytics</h3><p>Performance metrics coming soon...</p></div>;
+        case 'schedule':
+          return <div><h3>Schedule Management</h3><p>Schedule features coming soon...</p></div>;
+        case 'negotiations':
+          return <div><h3>Price Negotiations</h3><p>Negotiation features coming soon...</p></div>;
+        case 'payments':
+          return <div><h3>Payment Management</h3><p>Payment features coming soon...</p></div>;
+        case 'notifications':
+          return <div><h3>Notifications</h3><p>Notification management coming soon...</p></div>;
+        case 'settings':
+          return <div><h3>Settings</h3><p>Settings panel coming soon...</p></div>;
+        default:
+          return renderDashboard();
+      }
+    };
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center min-vh-100">
