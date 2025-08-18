@@ -6,6 +6,7 @@ ini_set('display_errors', 0);
 require_once '../config/init.php';
 require_once '../../config/database.php';
 require_once '../../middleware/auth.php';
+require_once '../../classes/Payment.php';
 
 // Add CORS headers
 header('Content-Type: application/json');
@@ -28,127 +29,109 @@ if (!isAuthenticated() || !isAdmin()) {
 
 try {
     // Get database connection
-    $pdo = DatabaseConfig::getConnection();
+    $db = DatabaseConfig::getConnection();
+    $payment = new Payment();
     $action = $_GET['action'] ?? 'overview';
     
     switch ($action) {
         case 'overview':
             try {
-                // Get total revenue from completed requests
-                $stmt = $pdo->query("SELECT COALESCE(SUM(total_price), 0) as total_revenue 
-                                   FROM service_requests 
-                                   WHERE status = 'completed'");
-                $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total_revenue'];
+                $payment = new Payment();
                 
-                // Get this month's revenue
-                $stmt = $pdo->query("SELECT COALESCE(SUM(total_price), 0) as monthly_revenue 
-                                   FROM service_requests 
-                                   WHERE status = 'completed' 
-                                   AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
-                                   AND YEAR(created_at) = YEAR(CURRENT_DATE())");
-                $monthlyRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['monthly_revenue'];
+                // Get basic financial overview using proper PDO methods
+                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'completed'");
+                $stmt->execute();
+                $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                // Get pending payments (confirmed but not completed)
-                $stmt = $pdo->query("SELECT COALESCE(SUM(total_price), 0) as pending_payments 
-                                   FROM service_requests 
-                                   WHERE status IN ('confirmed', 'in_progress')");
-                $pendingPayments = $stmt->fetch(PDO::FETCH_ASSOC)['pending_payments'];
+                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'completed' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+                $stmt->execute();
+                $monthlyRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                // Calculate platform commission (assuming 10% commission)
-                $platformCommission = $totalRevenue * 0.10;
-                $workerPayouts = $totalRevenue - $platformCommission;
+                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'pending'");
+                $stmt->execute();
+                $pendingPayments = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                // Get average transaction value
-                $stmt = $pdo->query("SELECT COALESCE(AVG(total_price), 0) as avg_transaction 
-                                   FROM service_requests 
-                                   WHERE status = 'completed'");
-                $avgTransaction = $stmt->fetch(PDO::FETCH_ASSOC)['avg_transaction'];
+                $stmt = $db->prepare("SELECT COUNT(*) as count FROM payments WHERE payment_status = 'completed'");
+                $stmt->execute();
+                $transactionCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
                 
-                // Get transaction count
-                $stmt = $pdo->query("SELECT COUNT(*) as transaction_count 
-                                   FROM service_requests 
-                                   WHERE status = 'completed'");
-                $transactionCount = $stmt->fetch(PDO::FETCH_ASSOC)['transaction_count'];
+                $avgTransaction = $transactionCount > 0 ? $totalRevenue / $transactionCount : 0;
                 
-                $overview = [
-                    'totalRevenue' => (float)$totalRevenue,
-                    'monthlyRevenue' => (float)$monthlyRevenue,
-                    'pendingPayments' => (float)$pendingPayments,
-                    'platformCommission' => (float)$platformCommission,
-                    'workerPayouts' => (float)$workerPayouts,
-                    'avgTransaction' => (float)$avgTransaction,
-                    'transactionCount' => (int)$transactionCount
+                // Get admin commission data with fallback
+                $commissionSummary = $payment->getAdminCommissionSummary();
+                $monthlyCommissionSummary = $payment->getAdminCommissionSummary(
+                    date('Y-m-01'), 
+                    date('Y-m-t')
+                );
+                
+                // Calculate fallback commission if admin_earnings table is empty
+                $totalCommission = $commissionSummary['total_commission'];
+                $monthlyCommission = $monthlyCommissionSummary['total_commission'];
+                
+                // If no commission data exists, calculate from completed payments
+                if ($totalCommission == 0 && $totalRevenue > 0) {
+                    $totalCommission = $totalRevenue * 0.10; // 10% commission
+                }
+                if ($monthlyCommission == 0 && $monthlyRevenue > 0) {
+                    $monthlyCommission = $monthlyRevenue * 0.10; // 10% commission
+                }
+                
+                $response = [
+                    'success' => true,
+                    'data' => [
+                        'total_revenue' => floatval($totalRevenue),
+                        'monthly_revenue' => floatval($monthlyRevenue),
+                        'pending_payments' => floatval($pendingPayments),
+                        'platform_commission' => floatval($totalCommission),
+                        'worker_payouts' => floatval($totalRevenue - $totalCommission),
+                        'average_transaction' => floatval($avgTransaction),
+                        'transaction_count' => intval($transactionCount),
+                        
+                        // Admin commission data
+                        'admin_commission' => [
+                            'total_commission' => floatval($totalCommission),
+                            'monthly_commission' => floatval($monthlyCommission),
+                            'total_transactions' => intval($commissionSummary['total_transactions'] ?: $transactionCount),
+                            'avg_commission_rate' => floatval($commissionSummary['avg_commission_rate'])
+                        ]
+                    ]
                 ];
             } catch (Exception $e) {
-                // Return empty data when database queries fail
-                error_log("Finance overview query failed: " . $e->getMessage());
+                $response = [
+                    'success' => false,
+                    'message' => 'Failed to fetch financial overview: ' . $e->getMessage()
+                ];
             }
             
-            echo json_encode([
-                'success' => true,
-                'data' => $overview
-            ]);
+            echo json_encode($response);
             break;
             
         case 'transactions':
             try {
                 $limit = $_GET['limit'] ?? 50;
                 $offset = $_GET['offset'] ?? 0;
-                $status = $_GET['status'] ?? null;
                 
-                $whereClause = "WHERE 1=1";
-                $params = [];
+                // Get admin commission transactions from admin_earnings table
+                $transactions = $payment->getAdminCommissionTransactions($limit, $offset);
                 
-                if ($status) {
-                    $whereClause .= " AND sr.status = ?";
-                    $params[] = $status;
-                }
-                
-                // Get transactions with customer and worker details
-                $sql = "SELECT 
-                            sr.id,
-                            sr.total_price,
-                            sr.status,
-                            sr.created_at,
-                            sr.updated_at,
-                            s.name as service_name,
-                            CONCAT(cu.first_name, ' ', cu.last_name) as customer_name,
-                            cu.email as customer_email,
-                            CONCAT(wu.first_name, ' ', wu.last_name) as worker_name,
-                            wu.email as worker_email,
-                            sr.total_price * 0.10 as platform_commission,
-                            sr.total_price * 0.90 as worker_payout
-                        FROM service_requests sr
-                        LEFT JOIN services s ON sr.service_id = s.id
-                        LEFT JOIN users cu ON sr.user_id = cu.id
-                        LEFT JOIN workers w ON sr.worker_id = w.id
-                        LEFT JOIN users wu ON w.user_id = wu.id
-                        $whereClause
-                        ORDER BY sr.created_at DESC
-                        LIMIT ? OFFSET ?";
-                
-                $params[] = (int)$limit;
-                $params[] = (int)$offset;
-                
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($params);
-                $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Format transactions
+                // Format transactions for frontend
                 $formattedTransactions = array_map(function($transaction) {
                     return [
                         'id' => (int)$transaction['id'],
-                        'amount' => (float)$transaction['total_price'],
+                        'payment_id' => (int)$transaction['payment_id'],
+                        'service_request_id' => (int)$transaction['service_request_id'],
+                        'amount' => (float)$transaction['gross_amount'],
+                        'commission_amount' => (float)$transaction['commission_amount'],
+                        'commission_rate' => (float)$transaction['commission_rate'],
+                        'worker_net_amount' => (float)$transaction['worker_net_amount'],
                         'status' => $transaction['status'],
-                        'service_name' => $transaction['service_name'],
+                        'service_name' => $transaction['service_name'] ?? $transaction['service_title'],
                         'customer_name' => $transaction['customer_name'],
                         'customer_email' => $transaction['customer_email'],
                         'worker_name' => $transaction['worker_name'],
                         'worker_email' => $transaction['worker_email'],
-                        'platform_commission' => (float)$transaction['platform_commission'],
-                        'worker_payout' => (float)$transaction['worker_payout'],
                         'created_at' => $transaction['created_at'],
-                        'updated_at' => $transaction['updated_at']
+                        'processed_at' => $transaction['processed_at']
                     ];
                 }, $transactions);
             } catch (Exception $e) {
@@ -164,56 +147,24 @@ try {
             break;
             
         case 'revenue_chart':
-            $period = $_GET['period'] ?? 'monthly'; // daily, weekly, monthly, yearly
+            $period = $_GET['period'] ?? 'monthly';
             
-            switch ($period) {
-                case 'daily':
-                    $sql = "SELECT 
-                                DATE(created_at) as period,
-                                COALESCE(SUM(total_price), 0) as revenue
-                            FROM service_requests 
-                            WHERE status = 'completed' 
-                            AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                            GROUP BY DATE(created_at)
-                            ORDER BY period";
-                    break;
-                case 'weekly':
-                    $sql = "SELECT 
-                                YEARWEEK(created_at) as period,
-                                COALESCE(SUM(total_price), 0) as revenue
-                            FROM service_requests 
-                            WHERE status = 'completed' 
-                            AND created_at >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
-                            GROUP BY YEARWEEK(created_at)
-                            ORDER BY period";
-                    break;
-                case 'yearly':
-                    $sql = "SELECT 
-                                YEAR(created_at) as period,
-                                COALESCE(SUM(total_price), 0) as revenue
-                            FROM service_requests 
-                            WHERE status = 'completed' 
-                            AND created_at >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
-                            GROUP BY YEAR(created_at)
-                            ORDER BY period";
-                    break;
-                default: // monthly
-                    $sql = "SELECT 
-                                DATE_FORMAT(created_at, '%Y-%m') as period,
-                                COALESCE(SUM(total_price), 0) as revenue
-                            FROM service_requests 
-                            WHERE status = 'completed' 
-                            AND created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-                            ORDER BY period";
-            }
+            // Get admin commission chart data using Payment class
+            $chartData = $payment->getAdminCommissionByPeriod($period, 12);
             
-            $stmt = $pdo->query($sql);
-            $chartData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Format data for chart display
+            $formattedData = array_map(function($item) {
+                return [
+                    'period' => $item['period'],
+                    'revenue' => (float)$item['revenue'],
+                    'commission' => (float)$item['commission'],
+                    'transactions' => (int)$item['transactions']
+                ];
+            }, $chartData);
             
             echo json_encode([
                 'success' => true,
-                'data' => $chartData
+                'data' => $formattedData
             ]);
             break;
             
@@ -239,7 +190,7 @@ try {
                     ORDER BY total_earned DESC
                     LIMIT ?";
             
-            $stmt = $pdo->prepare($sql);
+            $stmt = $db->prepare($sql);
             $stmt->execute([(int)$limit]);
             $workerPayouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -260,6 +211,26 @@ try {
             echo json_encode([
                 'success' => true,
                 'data' => $formattedPayouts
+            ]);
+            break;
+            
+        case 'admin_commission':
+            // Get admin commission summary and transactions
+            $startDate = $_GET['start_date'] ?? null;
+            $endDate = $_GET['end_date'] ?? null;
+            $period = $_GET['period'] ?? 'monthly';
+            
+            $summary = $payment->getAdminCommissionSummary($startDate, $endDate);
+            $chartData = $payment->getAdminCommissionByPeriod($period, 12);
+            $recentTransactions = $payment->getAdminCommissionTransactions(10, 0);
+            
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'summary' => $summary,
+                    'chart_data' => $chartData,
+                    'recent_transactions' => $recentTransactions
+                ]
             ]);
             break;
             

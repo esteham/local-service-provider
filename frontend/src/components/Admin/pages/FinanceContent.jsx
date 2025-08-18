@@ -28,12 +28,12 @@ const FinanceContent = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost';
       
-      // Load financial overview
+      // Load financial overview with admin commission data
       const overviewResponse = await axios.get(`${apiUrl}/backend/api/admin/finance.php?action=overview`, {
         withCredentials: true
       });
       
-      // Load transactions
+      // Load admin commission transactions
       const transactionsResponse = await axios.get(`${apiUrl}/backend/api/admin/finance.php?action=transactions&limit=10`, {
         withCredentials: true
       });
@@ -42,11 +42,14 @@ const FinanceContent = () => {
         const overview = overviewResponse.data.data;
         setFinancialData({
           totalRevenue: overview.totalRevenue || 0,
-          totalExpenses: overview.platformCommission || 0,
-          netProfit: overview.workerPayouts || 0,
+          adminCommission: overview.platformCommission || 0,
+          monthlyCommission: overview.monthlyCommission || 0,
+          workerPayouts: overview.workerPayouts || 0,
           pendingPayments: overview.pendingPayments || 0,
+          pendingCommission: overview.pendingCommission || 0,
           completedTransactions: overview.transactionCount || 0,
-          averageOrderValue: overview.avgTransaction || 0
+          averageCommission: overview.avgTransaction || 0,
+          commissionRate: overview.commissionRate || 10.0
         });
       }
       
@@ -54,13 +57,17 @@ const FinanceContent = () => {
         const transactions = transactionsResponse.data.data || [];
         setTransactions(transactions.map(transaction => ({
           id: transaction.id,
-          type: 'income',
-          amount: parseFloat(transaction.amount),
-          description: `${transaction.service_name} - ${transaction.customer_name}`,
+          payment_id: transaction.payment_id,
+          type: 'commission',
+          amount: parseFloat(transaction.commission_amount),
+          gross_amount: parseFloat(transaction.amount),
+          worker_amount: parseFloat(transaction.worker_net_amount),
+          description: `${transaction.service_name} - Commission from ${transaction.customer_name}`,
           date: transaction.created_at?.split(' ')[0] || transaction.created_at,
           status: transaction.status,
           customer: transaction.customer_name,
-          worker: transaction.worker_name
+          worker: transaction.worker_name,
+          commission_rate: transaction.commission_rate
         })));
       }
       
@@ -71,11 +78,14 @@ const FinanceContent = () => {
       // Set empty state instead of dummy data
       setFinancialData({
         totalRevenue: 0,
-        totalExpenses: 0,
-        netProfit: 0,
+        adminCommission: 0,
+        monthlyCommission: 0,
+        workerPayouts: 0,
         pendingPayments: 0,
+        pendingCommission: 0,
         completedTransactions: 0,
-        averageOrderValue: 0
+        averageCommission: 0,
+        commissionRate: 10.0
       });
       setTransactions([]);
     } finally {
@@ -144,23 +154,23 @@ const FinanceContent = () => {
           </div>
         </div>
 
-        <div className="stat-card expenses">
-          <div className="stat-icon">
-            <FaCreditCard />
-          </div>
-          <div className="stat-info">
-            <h3>${financialData.totalExpenses?.toLocaleString() || '0'}</h3>
-            <p>Total Expenses</p>
-          </div>
-        </div>
-
-        <div className="stat-card profit">
+        <div className="stat-card commission">
           <div className="stat-icon">
             <FaMoneyBillWave />
           </div>
           <div className="stat-info">
-            <h3>${financialData.netProfit?.toLocaleString() || '0'}</h3>
-            <p>Net Profit</p>
+            <h3>${financialData.adminCommission?.toLocaleString() || '0'}</h3>
+            <p>Admin Commission (10%)</p>
+          </div>
+        </div>
+
+        <div className="stat-card monthly">
+          <div className="stat-icon">
+            <FaCalendarAlt />
+          </div>
+          <div className="stat-info">
+            <h3>${financialData.monthlyCommission?.toLocaleString() || '0'}</h3>
+            <p>This Month's Commission</p>
           </div>
         </div>
 
@@ -169,8 +179,8 @@ const FinanceContent = () => {
             <FaReceipt />
           </div>
           <div className="stat-info">
-            <h3>${financialData.pendingPayments?.toLocaleString() || '0'}</h3>
-            <p>Pending Payments</p>
+            <h3>${financialData.pendingCommission?.toLocaleString() || '0'}</h3>
+            <p>Pending Commission</p>
           </div>
         </div>
       </div>
@@ -182,15 +192,23 @@ const FinanceContent = () => {
           <span className="metric-value">{financialData.completedTransactions || 0}</span>
         </div>
         <div className="metric-card">
-          <span className="metric-label">Average Order Value</span>
-          <span className="metric-value">${financialData.averageOrderValue || 0}</span>
+          <span className="metric-label">Average Commission</span>
+          <span className="metric-value">${financialData.averageCommission || 0}</span>
+        </div>
+        <div className="metric-card">
+          <span className="metric-label">Commission Rate</span>
+          <span className="metric-value">{financialData.commissionRate || 10}%</span>
+        </div>
+        <div className="metric-card">
+          <span className="metric-label">Worker Payouts</span>
+          <span className="metric-value">${financialData.workerPayouts?.toLocaleString() || '0'}</span>
         </div>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Recent Commission Transactions */}
       <div className="transactions-section">
         <div className="section-header">
-          <h3>Recent Transactions</h3>
+          <h3>Recent Commission Earnings</h3>
           <button className="btn btn-outline">
             <FaFilter /> Filter
           </button>
@@ -198,23 +216,24 @@ const FinanceContent = () => {
 
         <div className="transactions-list">
           {transactions.map((transaction) => {
-            const IconComponent = getTransactionIcon(transaction.type);
             return (
               <div key={transaction.id} className="transaction-item">
-                <div className="transaction-icon" style={{ 
-                  background: transaction.type === 'income' ? '#10b981' : '#ef4444' 
-                }}>
-                  <IconComponent />
+                <div className="transaction-icon commission-icon">
+                  <FaMoneyBillWave />
                 </div>
                 
                 <div className="transaction-details">
                   <h4>{transaction.description}</h4>
                   <p>{new Date(transaction.date).toLocaleDateString()}</p>
+                  <small>Worker: {transaction.worker} | Customer: {transaction.customer}</small>
                 </div>
                 
                 <div className="transaction-amount">
-                  <span className={`amount ${transaction.type}`}>
-                    {transaction.type === 'income' ? '+' : '-'}${transaction.amount}
+                  <span className="amount commission">
+                    +${transaction.amount?.toFixed(2)}
+                  </span>
+                  <span className="commission-breakdown">
+                    {transaction.commission_rate}% of ${transaction.gross_amount?.toFixed(2)}
                   </span>
                   <span 
                     className="status"
@@ -226,6 +245,12 @@ const FinanceContent = () => {
               </div>
             );
           })}
+          
+          {transactions.length === 0 && (
+            <div className="no-transactions">
+              <p>No commission transactions found. Commission will appear here when workers complete paid tasks.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -306,8 +331,8 @@ const FinanceContent = () => {
         }
 
         .stat-card.revenue .stat-icon { background: linear-gradient(135deg, #10b981, #059669); }
-        .stat-card.expenses .stat-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .stat-card.profit .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .stat-card.commission .stat-icon { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .stat-card.monthly .stat-icon { background: linear-gradient(135deg, #3b82f6, #2563eb); }
         .stat-card.pending .stat-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
 
         .stat-info h3 {
@@ -429,6 +454,31 @@ const FinanceContent = () => {
 
         .amount.income { color: #10b981; }
         .amount.expense { color: #ef4444; }
+        .amount.commission { color: #dc2626; }
+        
+        .commission-icon {
+          background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+        }
+        
+        .commission-breakdown {
+          display: block;
+          font-size: 0.7rem;
+          color: #6b7280;
+          margin-top: 0.25rem;
+        }
+        
+        .no-transactions {
+          text-align: center;
+          padding: 2rem;
+          color: #6b7280;
+        }
+        
+        .transaction-details small {
+          display: block;
+          color: #9ca3af;
+          font-size: 0.75rem;
+          margin-top: 0.25rem;
+        }
 
         .status {
           display: block;

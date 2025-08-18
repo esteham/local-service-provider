@@ -296,7 +296,7 @@ class Payment {
     }
     
     /**
-     * Calculate and record worker earnings
+     * Calculate and record worker earnings and admin commission
      */
     private function calculateWorkerEarnings($paymentId) {
         $payment = $this->getPaymentById($paymentId);
@@ -312,6 +312,7 @@ class Payment {
         $commissionAmount = ($grossAmount * $commissionRate) / 100;
         $netAmount = $grossAmount - $commissionAmount;
         
+        // Record worker earnings
         $earningsData = [
             'worker_id' => $payment['worker_id'],
             'payment_id' => $paymentId,
@@ -324,6 +325,84 @@ class Payment {
         ];
         
         $this->db->insert('worker_earnings', $earningsData);
+        
+        // Record admin commission earnings
+        $this->recordAdminCommission($paymentId, $grossAmount, $commissionRate, $commissionAmount);
+        
+        // Update payment with commission information
+        $this->db->update('payments', [
+            'admin_commission_amount' => $commissionAmount,
+            'admin_commission_processed' => 1
+        ], ['id' => $paymentId]);
+    }
+    
+    /**
+     * Record admin commission earnings
+     */
+    private function recordAdminCommission($paymentId, $grossAmount, $commissionRate, $commissionAmount) {
+        $payment = $this->getPaymentById($paymentId);
+        if (!$payment) return;
+        
+        try {
+            // Check if admin_earnings table exists, create if not
+            $this->ensureAdminEarningsTable();
+            
+            $adminEarningsData = [
+                'payment_id' => $paymentId,
+                'service_request_id' => $payment['service_request_id'],
+                'worker_id' => $payment['worker_id'],
+                'user_id' => $payment['user_id'],
+                'gross_amount' => $grossAmount,
+                'commission_rate' => $commissionRate,
+                'commission_amount' => $commissionAmount,
+                'worker_net_amount' => $grossAmount - $commissionAmount,
+                'status' => 'processed'
+            ];
+            
+            $this->db->insert('admin_earnings', $adminEarningsData);
+            
+            // Log admin commission
+            $this->logPaymentAction($paymentId, 'admin_commission_recorded', [
+                'commission_amount' => $commissionAmount,
+                'commission_rate' => $commissionRate
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Failed to record admin commission: " . $e->getMessage());
+            // Continue execution even if commission recording fails
+        }
+    }
+    
+    /**
+     * Ensure admin_earnings table exists
+     */
+    private function ensureAdminEarningsTable() {
+        $sql = "CREATE TABLE IF NOT EXISTS admin_earnings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            payment_id INT NOT NULL,
+            service_request_id INT NOT NULL,
+            worker_id INT NOT NULL,
+            user_id INT NOT NULL,
+            gross_amount DECIMAL(10,2) NOT NULL,
+            commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+            commission_amount DECIMAL(10,2) NOT NULL,
+            worker_net_amount DECIMAL(10,2) NOT NULL,
+            status ENUM('pending', 'processed', 'paid') DEFAULT 'pending',
+            processed_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_payment_id (payment_id),
+            INDEX idx_service_request_id (service_request_id),
+            INDEX idx_worker_id (worker_id),
+            INDEX idx_status (status),
+            INDEX idx_created_at (created_at)
+        )";
+        
+        $this->db->query($sql);
+        
+        // Also ensure payments table has commission fields
+        $this->db->query("ALTER TABLE payments 
+            ADD COLUMN IF NOT EXISTS admin_commission_amount DECIMAL(10,2) DEFAULT 0.00,
+            ADD COLUMN IF NOT EXISTS admin_commission_processed BOOLEAN DEFAULT FALSE");
     }
     
     /**
@@ -556,7 +635,162 @@ class Payment {
             [$userId, $limit, $offset]
         );
     }
-
-
+    
+    /**
+     * Get admin commission earnings summary
+     */
+    public function getAdminCommissionSummary($startDate = null, $endDate = null) {
+        try {
+            // Ensure admin_earnings table exists
+            $this->ensureAdminEarningsTable();
+            
+            $whereClause = "WHERE 1=1";
+            $params = [];
+            
+            if ($startDate) {
+                $whereClause .= " AND ae.created_at >= ?";
+                $params[] = $startDate;
+            }
+            
+            if ($endDate) {
+                $whereClause .= " AND ae.created_at <= ?";
+                $params[] = $endDate;
+            }
+            
+            $summary = $this->db->fetch(
+                "SELECT 
+                    COUNT(*) as total_transactions,
+                    COALESCE(SUM(ae.commission_amount), 0) as total_commission,
+                    COALESCE(SUM(ae.gross_amount), 0) as total_revenue,
+                    COALESCE(SUM(ae.worker_net_amount), 0) as total_worker_payouts,
+                    COALESCE(AVG(ae.commission_amount), 0) as avg_commission_per_transaction,
+                    COALESCE(AVG(ae.commission_rate), 10.00) as avg_commission_rate
+                FROM admin_earnings ae
+                $whereClause",
+                $params
+            );
+            
+            return $summary ?: [
+                'total_transactions' => 0,
+                'total_commission' => 0,
+                'total_revenue' => 0,
+                'total_worker_payouts' => 0,
+                'avg_commission_per_transaction' => 0,
+                'avg_commission_rate' => 10.00
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Admin commission summary error: " . $e->getMessage());
+            // Return fallback data if table doesn't exist or query fails
+            return [
+                'total_transactions' => 0,
+                'total_commission' => 0,
+                'total_revenue' => 0,
+                'total_worker_payouts' => 0,
+                'avg_commission_per_transaction' => 0,
+                'avg_commission_rate' => 10.00
+            ];
+        }
+    }
+    
+    /**
+     * Get admin commission earnings by period
+     */
+    public function getAdminCommissionByPeriod($period = 'monthly', $limit = 12) {
+        try {
+            $this->ensureAdminEarningsTable();
+            
+            switch ($period) {
+                case 'daily':
+                    $sql = "SELECT 
+                                DATE(ae.created_at) as period,
+                                COALESCE(SUM(ae.commission_amount), 0) as commission,
+                                COALESCE(SUM(ae.gross_amount), 0) as revenue,
+                                COUNT(*) as transactions
+                            FROM admin_earnings ae
+                            WHERE ae.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                            GROUP BY DATE(ae.created_at)
+                            ORDER BY period DESC
+                            LIMIT ?";
+                    break;
+                case 'weekly':
+                    $sql = "SELECT 
+                                YEARWEEK(ae.created_at) as period,
+                                COALESCE(SUM(ae.commission_amount), 0) as commission,
+                                COALESCE(SUM(ae.gross_amount), 0) as revenue,
+                                COUNT(*) as transactions
+                            FROM admin_earnings ae
+                            WHERE ae.created_at >= DATE_SUB(NOW(), INTERVAL 12 WEEK)
+                            GROUP BY YEARWEEK(ae.created_at)
+                            ORDER BY period DESC
+                            LIMIT ?";
+                    break;
+                case 'yearly':
+                    $sql = "SELECT 
+                                YEAR(ae.created_at) as period,
+                                COALESCE(SUM(ae.commission_amount), 0) as commission,
+                                COALESCE(SUM(ae.gross_amount), 0) as revenue,
+                                COUNT(*) as transactions
+                            FROM admin_earnings ae
+                            WHERE ae.created_at >= DATE_SUB(NOW(), INTERVAL 5 YEAR)
+                            GROUP BY YEAR(ae.created_at)
+                            ORDER BY period DESC
+                            LIMIT ?";
+                    break;
+                default: // monthly
+                    $sql = "SELECT 
+                                DATE_FORMAT(ae.created_at, '%Y-%m') as period,
+                                COALESCE(SUM(ae.commission_amount), 0) as commission,
+                                COALESCE(SUM(ae.gross_amount), 0) as revenue,
+                                COUNT(*) as transactions
+                            FROM admin_earnings ae
+                            WHERE ae.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                            GROUP BY DATE_FORMAT(ae.created_at, '%Y-%m')
+                            ORDER BY period DESC
+                            LIMIT ?";
+            }
+            
+            return $this->db->fetchAll($sql, [$limit]) ?: [];
+            
+        } catch (Exception $e) {
+            error_log("Admin commission by period error: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get admin commission transactions
+     */
+    public function getAdminCommissionTransactions($limit = 10, $offset = 0) {
+        try {
+            // Ensure admin_earnings table exists
+            $this->ensureAdminEarningsTable();
+            
+            return $this->db->fetchAll(
+                "SELECT 
+                    ae.*,
+                    p.payment_method,
+                    p.payment_status,
+                    p.created_at as payment_date,
+                    sr.title as service_title,
+                    sr.address as service_location,
+                    CONCAT(u.first_name, ' ', u.last_name) as customer_name,
+                    CONCAT(w.first_name, ' ', w.last_name) as worker_name
+                FROM admin_earnings ae
+                JOIN payments p ON ae.payment_id = p.id
+                JOIN service_requests sr ON ae.service_request_id = sr.id
+                JOIN users u ON ae.user_id = u.id
+                JOIN users w ON ae.worker_id = w.id
+                ORDER BY ae.created_at DESC
+                LIMIT ? OFFSET ?",
+                [$limit, $offset]
+            );
+            
+        } catch (Exception $e) {
+            error_log("Admin commission transactions error: " . $e->getMessage());
+            // Return empty array if table doesn't exist or query fails
+            return [];
+        }
+    }
 }
 ?>
