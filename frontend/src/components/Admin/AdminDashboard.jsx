@@ -435,18 +435,18 @@ const ModernAdminDashboard = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost";
       let url = `${apiUrl}/backend/api/admin/workers.php?status=active`;
-      
+
       // Add zone/area filtering parameters
       if (areaId) {
         url += `&area_id=${areaId}`;
       } else if (zoneId) {
         url += `&zone_id=${zoneId}`;
       }
-      
+
       const response = await axios.get(url, {
         withCredentials: true,
       });
-      
+
       if (response.data.success) {
         setAvailableWorkers(response.data.data || []);
       } else {
@@ -602,7 +602,7 @@ const ModernAdminDashboard = () => {
         // For assign action, we need to show worker assignment modal
         const request = serviceRequests.find((r) => r.id === requestId);
         setSelectedRequest(request);
-        
+
         // Automatically load workers for the request's zone/area
         if (request && (request.area_id || request.zone_id)) {
           await loadWorkersForZoneArea(request.zone_id, request.area_id);
@@ -610,7 +610,7 @@ const ModernAdminDashboard = () => {
           // Fallback to all active workers if no zone/area info
           await loadWorkersForZoneArea(null, null);
         }
-        
+
         setShowWorkerAssignModal(true);
         return;
       }
@@ -690,22 +690,22 @@ const ModernAdminDashboard = () => {
   };
 
   const handleCloseRequestDetailsModal = () => {
-  setShowRequestDetailsModal(false);
-  setSelectedRequest(null);
-};
+    setShowRequestDetailsModal(false);
+    setSelectedRequest(null);
+  };
 
-const handleCloseWorkerAssignModal = () => {
-  setShowWorkerAssignModal(false);
-  setSelectedRequest(null);
-  setSelectedWorker("");
-  setAssignmentNotes("");
-  setAvailableWorkers([]);
-};
+  const handleCloseWorkerAssignModal = () => {
+    setShowWorkerAssignModal(false);
+    setSelectedRequest(null);
+    setSelectedWorker("");
+    setAssignmentNotes("");
+    setAvailableWorkers([]);
+  };
 
-const handleCloseCategoryModal = () => {
-  setShowCategoryCreateModal(false);
-  loadCategories(); // Refresh categories list
-};
+  const handleCloseCategoryModal = () => {
+    setShowCategoryCreateModal(false);
+    loadCategories(); // Refresh categories list
+  };
 
   const handleCloseCategoryEditModal = () => {
     setShowCategoryEditModal(false);
@@ -999,16 +999,19 @@ const handleCloseCategoryModal = () => {
           {filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
               <div key={user.id} className="user-card">
-                <div className="user-info">
-                  <h4>{user.name || user.first_name + " " + user.last_name}</h4>
-                  <p>{user.email}</p>
-                  <span className={`role-badge ${user.role}`}>{user.role}</span>
-                  {user.created_at && (
-                    <small>
-                      Joined: {new Date(user.created_at).toLocaleDateString()}
-                    </small>
-                  )}
+                <div className="user-info d-flex justify-content-between align-items-center">
+                  <h4 className="mb-0">
+                    {user.name || user.first_name + " " + user.last_name}
+                  </h4>
+                  <p className={`role-badge ${user.role} mb-0`}>{user.role}</p>
                 </div>
+                <br/>
+                {user.created_at && (
+                  <small>
+                    Joined: &nbsp;{new Date(user.created_at).toLocaleDateString()}
+                  </small>
+                )}
+                <p>{user.email}</p>
                 <div className="user-actions">
                   <button
                     className="btn btn-sm btn-info"
@@ -1584,10 +1587,10 @@ const handleCloseCategoryModal = () => {
                   <strong>Address:</strong> {selectedRequest.address}
                 </p>
                 <p>
-                  <strong>Zone:</strong> {selectedRequest.zone_name || 'N/A'}
+                  <strong>Zone:</strong> {selectedRequest.zone_name || "N/A"}
                 </p>
                 <p>
-                  <strong>Area:</strong> {selectedRequest.area_name || 'N/A'}
+                  <strong>Area:</strong> {selectedRequest.area_name || "N/A"}
                 </p>
                 <p>
                   <strong>Price:</strong> ${selectedRequest.price}
@@ -1596,7 +1599,13 @@ const handleCloseCategoryModal = () => {
 
               <div className="form-group">
                 <label htmlFor="worker-select">
-                  Select Worker {selectedRequest.area_name ? `(${selectedRequest.area_name} Area)` : selectedRequest.zone_name ? `(${selectedRequest.zone_name} Zone)` : ''}:
+                  Select Worker{" "}
+                  {selectedRequest.area_name
+                    ? `(${selectedRequest.area_name} Area)`
+                    : selectedRequest.zone_name
+                    ? `(${selectedRequest.zone_name} Zone)`
+                    : ""}
+                  :
                 </label>
                 <select
                   id="worker-select"
@@ -1608,9 +1617,11 @@ const handleCloseCategoryModal = () => {
                   {availableWorkers.length > 0 ? (
                     availableWorkers.map((worker) => (
                       <option key={worker.id} value={worker.id}>
-                        {worker.name} - {worker.specialization} 
+                        {worker.name} - {worker.specialization}
                         {worker.area_name && ` (${worker.area_name})`}
-                        {!worker.area_name && worker.zone_name && ` (${worker.zone_name})`}
+                        {!worker.area_name &&
+                          worker.zone_name &&
+                          ` (${worker.zone_name})`}
                       </option>
                     ))
                   ) : (
@@ -1621,8 +1632,11 @@ const handleCloseCategoryModal = () => {
                 </select>
                 {availableWorkers.length === 0 && (
                   <small className="text-muted">
-                    No workers found for {selectedRequest.area_name || selectedRequest.zone_name || 'this location'}. 
-                    Consider expanding search to nearby areas.
+                    No workers found for{" "}
+                    {selectedRequest.area_name ||
+                      selectedRequest.zone_name ||
+                      "this location"}
+                    . Consider expanding search to nearby areas.
                   </small>
                 )}
               </div>

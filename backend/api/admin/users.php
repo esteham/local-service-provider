@@ -38,16 +38,16 @@ try {
                     $pendingUsers = [];
                     
                     // Get pending workers
-                    $workerStmt = $pdo->prepare("
-                        SELECT w.id, w.user_id, w.first_name, w.last_name, w.phone, w.skills, w.zone_id, w.created_at,
-                               u.username, u.email, 'worker' as role, 'pending' as status, u.image as profile_image,
-                               z.name as zone_name
-                        FROM workers w
-                        JOIN users u ON w.user_id = u.id
-                        LEFT JOIN zones z ON w.zone_id = z.id
-                        WHERE w.status = 'pending'
-                        ORDER BY w.created_at DESC
-                    ");
+                    $workerStmt = $pdo->prepare("SELECT 
+                                            w.id, w.user_id, w.first_name, w.last_name, w.phone, w.skills,w.zone_id, w.created_at,
+                                            u.username, u.email, 'worker' as role, 'pending' as status, u.image as profile_image,
+                                            z.name as zone_name
+                                        FROM workers w
+                                        JOIN users u ON w.user_id = u.id
+                                        LEFT JOIN zones z ON w.zone_id = z.id
+                                        WHERE w.status = 'pending'
+                                        ORDER BY w.created_at DESC
+                                    ");
                     $workerStmt->execute();
                     $pendingWorkers = $workerStmt->fetchAll(PDO::FETCH_ASSOC);
                     
@@ -70,16 +70,16 @@ try {
                     }
                     
                     // Get pending agents
-                    $agentStmt = $pdo->prepare("
-                        SELECT a.id, a.user_id, a.first_name, a.last_name, a.phone, a.zone_id, a.created_at,
-                               u.username, u.email, 'agent' as role, 'pending' as status, u.image as profile_image,
-                               z.name as zone_name
-                        FROM agents a
-                        JOIN users u ON a.user_id = u.id
-                        LEFT JOIN zones z ON a.zone_id = z.id
-                        WHERE a.status = 'pending'
-                        ORDER BY a.created_at DESC
-                    ");
+                    $agentStmt = $pdo->prepare("SELECT 
+                                            a.id, a.user_id, a.first_name, a.last_name, a.phone, a.zone_id, a.created_at,
+                                                u.username, u.email, 'agent' as role, 'pending' as status, u.image as profile_image,
+                                                z.name as zone_name
+                                            FROM agents a
+                                            JOIN users u ON a.user_id = u.id
+                                            LEFT JOIN zones z ON a.zone_id = z.id
+                                            WHERE a.status = 'pending'
+                                            ORDER BY a.created_at DESC
+                                        ");
                     $agentStmt->execute();
                     $pendingAgents = $agentStmt->fetchAll(PDO::FETCH_ASSOC);
                     
@@ -128,7 +128,7 @@ try {
                     $whereClause = "WHERE status = " . $pdo->quote($statusFilter);
                 }
                 
-                $stmt = $pdo->query("SELECT id, username, email, role, status, created_at 
+                $stmt = $pdo->query("SELECT * 
                                     FROM users 
                                     $whereClause
                                     ORDER BY created_at DESC");
