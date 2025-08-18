@@ -30,6 +30,8 @@ const ServiceCard = ({ service, onRequestService, onViewDetails }) => {
       assigned: { class: 'bg-info', text: 'Assigned' },
       in_progress: { class: 'bg-primary', text: 'In Progress' },
       completed: { class: 'bg-success', text: 'Completed' },
+      paid: { class: 'bg-success', text: 'Paid' },
+      payment_pending: { class: 'bg-warning', text: 'Payment Pending' },
       cancelled: { class: 'bg-secondary', text: 'Cancelled' }
     };
     return badges[status] || badges.pending;

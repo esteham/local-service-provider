@@ -44,6 +44,8 @@ const PaymentsContent = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       completed: { variant: 'success', text: 'Completed' },
+      paid: { variant: 'success', text: 'Paid' },
+      payment_pending: { variant: 'warning', text: 'Payment Pending' },
       pending: { variant: 'warning', text: 'Pending' },
       failed: { variant: 'danger', text: 'Failed' }
     };

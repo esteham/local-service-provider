@@ -42,7 +42,9 @@ const AssignmentsContent = () => {
     const statusConfig = {
       assigned: { variant: 'warning', text: 'Assigned' },
       in_progress: { variant: 'primary', text: 'In Progress' },
-      completed: { variant: 'success', text: 'Completed' }
+      completed: { variant: 'success', text: 'Completed' },
+      paid: { variant: 'success', text: 'Paid' },
+      payment_pending: { variant: 'warning', text: 'Payment Pending' }
     };
     
     const config = statusConfig[status] || { variant: 'secondary', text: status };

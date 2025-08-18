@@ -30,6 +30,8 @@ const ServiceRequestCard = ({
       assigned: { class: 'bg-info', text: 'Assigned', color: '#dbeafe', textColor: '#1e40af' },
       in_progress: { class: 'bg-primary', text: 'In Progress', color: '#dbeafe', textColor: '#1e40af' },
       completed: { class: 'bg-success', text: 'Completed', color: '#d1fae5', textColor: '#065f46' },
+      paid: { class: 'bg-success', text: 'Paid', color: '#dcfce7', textColor: '#166534' },
+      payment_pending: { class: 'bg-warning', text: 'Payment Pending', color: '#fef3c7', textColor: '#92400e' },
       cancelled: { class: 'bg-secondary', text: 'Cancelled', color: '#f3f4f6', textColor: '#6b7280' }
     };
     return badges[status] || badges.pending;

@@ -189,6 +189,8 @@ const ServiceRequestsContent = () => {
       assigned: { variant: 'info', text: 'Assigned' },
       in_progress: { variant: 'primary', text: 'In Progress' },
       completed: { variant: 'success', text: 'Completed' },
+      paid: { variant: 'success', text: 'Paid' },
+      payment_pending: { variant: 'warning', text: 'Payment Pending' },
       cancelled: { variant: 'danger', text: 'Cancelled' }
     };
     
