@@ -35,6 +35,38 @@ const WorkerDashboard = () => {
     loadDashboardData();
   }, []);
 
+  // Real-time updates listener for worker dashboard
+  useEffect(() => {
+    const handleServiceRequestUpdate = (event) => {
+      console.log('Service request updated - Worker Dashboard:', event.detail);
+      // Refresh dashboard data when service requests are updated
+      loadDashboardData();
+    };
+
+    const handleServiceRequestCreated = (event) => {
+      console.log('New service request created - Worker Dashboard:', event.detail);
+      // Refresh dashboard data when new service requests are created
+      loadDashboardData();
+    };
+
+    // Listen for real-time updates
+    window.addEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+    window.addEventListener('serviceRequestCreated', handleServiceRequestCreated);
+
+    // Auto-refresh every 30 seconds for worker tasks
+    const interval = setInterval(() => {
+      if (activeTab === 'dashboard' || activeTab === 'tasks') {
+        loadDashboardData();
+      }
+    }, 20000);
+
+    return () => {
+      window.removeEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+      window.removeEventListener('serviceRequestCreated', handleServiceRequestCreated);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -96,6 +128,16 @@ const WorkerDashboard = () => {
       if (response.data.success) {
         toast.success(`Request ${action}ed successfully`);
         loadDashboardData(); // Refresh data
+        
+        // Trigger real-time update event for other components
+        window.dispatchEvent(new CustomEvent('serviceRequestUpdate', {
+          detail: {
+            requestId: requestId,
+            action: action,
+            workerAction: true,
+            timestamp: new Date().toISOString()
+          }
+        }));
       } else {
         toast.error(response.data.message || `Failed to ${action} request`);
       }

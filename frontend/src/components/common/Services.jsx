@@ -39,7 +39,8 @@ const Services = () => {
       zone_id: '',
       area_id: ''
     },
-    bookingStep: 1 
+    bookingStep: 1,
+    submittingBooking: false
   });
 
   const location = useLocation();
@@ -263,6 +264,9 @@ const Services = () => {
       return;
     }
 
+    // Set loading state
+    setState(prev => ({ ...prev, submittingBooking: true }));
+
     try {
       const bookingPayload = {
         service_id: state.selectedService.id,
@@ -289,13 +293,26 @@ const Services = () => {
           <div>
             <h6>Booking Confirmed!</h6>
             <p>Your {state.selectedService.name} service has been scheduled.</p>
+            <p>Request ID: #{response.data.request_id}</p>
             <p>We'll contact you shortly to confirm details.</p>
           </div>,
-          { autoClose: 5000 }
+          { autoClose: 3000 }
         );
+        
+        // Trigger real-time updates across the system
+        window.dispatchEvent(new CustomEvent('serviceRequestCreated', {
+          detail: {
+            requestId: response.data.request_id,
+            serviceName: state.selectedService.name,
+            status: 'pending'
+          }
+        }));
+
         setState(prev => ({
           ...prev,
           showBookingModal: false,
+          submittingBooking: false,
+          bookingStep: 1,
           bookingData: {
             name: '',
             email: '',
@@ -310,10 +327,12 @@ const Services = () => {
         }));
       } else {
         toast.error(response.data.message || 'Failed to submit service request');
+        setState(prev => ({ ...prev, submittingBooking: false }));
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
       toast.error('Failed to submit service request. Please try again.');
+      setState(prev => ({ ...prev, submittingBooking: false }));
     }
   }, [state.selectedService, state.bookingData, state.bookingStep]);
 
@@ -1008,8 +1027,26 @@ const Services = () => {
               >
                 Cancel
               </Button>
-              <Button variant="primary" type="submit">
-                {state.bookingStep === 1 ? 'Next' : 'Submit Request'}
+              <Button 
+                variant="primary" 
+                type="submit" 
+                disabled={state.submittingBooking}
+              >
+                {state.submittingBooking ? (
+                  <>
+                    <Spinner
+                      as="span"
+                      animation="border"
+                      size="sm"
+                      role="status"
+                      aria-hidden="true"
+                      className="me-2"
+                    />
+                    Submitting...
+                  </>
+                ) : (
+                  state.bookingStep === 1 ? 'Next' : 'Submit Request'
+                )}
               </Button>
             </Modal.Footer>
           </Form>

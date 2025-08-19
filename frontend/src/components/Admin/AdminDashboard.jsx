@@ -111,6 +111,41 @@ const ModernAdminDashboard = () => {
     }
   }, [activeTab]);
 
+  // Real-time updates listener
+  useEffect(() => {
+    const handleServiceRequestCreated = (event) => {
+      console.log('New service request created - Admin Dashboard:', event.detail);
+      // Refresh service requests and stats
+      loadServiceRequests();
+      loadStats();
+    };
+
+    const handleServiceRequestUpdate = (event) => {
+      console.log('Service request updated - Admin Dashboard:', event.detail);
+      // Refresh service requests and stats
+      loadServiceRequests();
+      loadStats();
+    };
+
+    // Listen for real-time updates
+    window.addEventListener('serviceRequestCreated', handleServiceRequestCreated);
+    window.addEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+
+    // Auto-refresh every 30 seconds for admin dashboard
+    const interval = setInterval(() => {
+      if (activeTab === 'dashboard' || activeTab === 'requests') {
+        loadServiceRequests();
+        loadStats();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('serviceRequestCreated', handleServiceRequestCreated);
+      window.removeEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {
@@ -638,6 +673,16 @@ const ModernAdminDashboard = () => {
       if (response.data.success) {
         toast.success(`Request ${action}ed successfully`);
         loadServiceRequests();
+        
+        // Trigger real-time update event
+        window.dispatchEvent(new CustomEvent('serviceRequestUpdate', {
+          detail: {
+            requestId: requestId,
+            action: action,
+            newStatus: newStatus,
+            timestamp: new Date().toISOString()
+          }
+        }));
       } else {
         toast.error(response.data.message || `Failed to ${action} request`);
       }

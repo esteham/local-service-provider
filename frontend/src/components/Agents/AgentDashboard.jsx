@@ -55,6 +55,38 @@ const AgentDashboard = () => {
     loadDashboardData();
   }, []);
 
+  // Real-time updates listener for agent dashboard
+  useEffect(() => {
+    const handleServiceRequestUpdate = (event) => {
+      console.log('Service request updated - Agent Dashboard:', event.detail);
+      // Refresh dashboard data when service requests are updated
+      loadDashboardData();
+    };
+
+    const handleServiceRequestCreated = (event) => {
+      console.log('New service request created - Agent Dashboard:', event.detail);
+      // Refresh dashboard data when new service requests are created
+      loadDashboardData();
+    };
+
+    // Listen for real-time updates
+    window.addEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+    window.addEventListener('serviceRequestCreated', handleServiceRequestCreated);
+
+    // Auto-refresh every 30 seconds for agent dashboard
+    const interval = setInterval(() => {
+      if (activeTab === 'dashboard' || activeTab === 'requests') {
+        loadDashboardData();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+      window.removeEventListener('serviceRequestCreated', handleServiceRequestCreated);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
   const loadDashboardData = async () => {
     setLoading(true);
     try {

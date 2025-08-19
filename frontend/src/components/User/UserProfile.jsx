@@ -59,45 +59,77 @@ const UserProfile = () => {
   const watchNewPassword = watchPassword('new_password');
   
   // Fetch user profile and requests
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profileRes, requestsRes, pendingPaymentsRes, paymentHistoryRes] = await Promise.all([
-          axios.get(`${BASE_URL}/backend/api/user/profile.php`, { withCredentials: true }),
-          axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true }),
-          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true }),
-          axios.get(`${BASE_URL}/backend/api/user/payment.php?action=history_with_slips`, { withCredentials: true })
-        ]);
-        
-        if (profileRes.data.success) {
-          setProfile(profileRes.data.data);
-          reset(profileRes.data.data);
-        }
-        
-        if (requestsRes.data.success) {
-          console.log('Service requests received:', requestsRes.data.data);
-          setRequests(requestsRes.data.data);
-        }
-        
-        if (pendingPaymentsRes.data.success) {
-          console.log('Pending payments received:', pendingPaymentsRes.data.data);
-          setPendingPayments(pendingPaymentsRes.data.data);
-        }
-        
-        if (paymentHistoryRes.data.success) {
-          console.log('Payment history received:', paymentHistoryRes.data.data);
-          setPaymentHistory(paymentHistoryRes.data.data);
-        }
-      } catch (err) {
-        setError('Failed to load data');
-        toast.error('Failed to load profile data');
-      } finally {
-        setIsLoading(false);
+  const fetchData = async () => {
+    try {
+      const [profileRes, requestsRes, pendingPaymentsRes, paymentHistoryRes] = await Promise.all([
+        axios.get(`${BASE_URL}/backend/api/user/profile.php`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/user/requests.php`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/user/payment.php?action=pending`, { withCredentials: true }),
+        axios.get(`${BASE_URL}/backend/api/user/payment.php?action=history_with_slips`, { withCredentials: true })
+      ]);
+      
+      if (profileRes.data.success) {
+        setProfile(profileRes.data.data);
+        reset(profileRes.data.data);
       }
-    };
-    
+      
+      if (requestsRes.data.success) {
+        console.log('Service requests received:', requestsRes.data.data);
+        setRequests(requestsRes.data.data);
+      }
+      
+      if (pendingPaymentsRes.data.success) {
+        console.log('Pending payments received:', pendingPaymentsRes.data.data);
+        setPendingPayments(pendingPaymentsRes.data.data);
+      }
+      
+      if (paymentHistoryRes.data.success) {
+        console.log('Payment history received:', paymentHistoryRes.data.data);
+        setPaymentHistory(paymentHistoryRes.data.data);
+      }
+    } catch (err) {
+      setError('Failed to load data');
+      toast.error('Failed to load profile data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
+
+  // Real-time updates listener
+  useEffect(() => {
+    const handleServiceRequestUpdate = (event) => {
+      console.log('Service request update received:', event.detail);
+      // Refresh data when service request status changes
+      fetchData();
+    };
+
+    const handleServiceRequestCreated = (event) => {
+      console.log('New service request created:', event.detail);
+      // Refresh data when new service request is created
+      fetchData();
+    };
+
+    // Listen for real-time updates
+    window.addEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+    window.addEventListener('serviceRequestCreated', handleServiceRequestCreated);
+
+    // Auto-refresh every 30 seconds to catch any missed updates
+    const interval = setInterval(() => {
+      if (activeTab === 'requests') {
+        fetchData();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener('serviceRequestUpdate', handleServiceRequestUpdate);
+      window.removeEventListener('serviceRequestCreated', handleServiceRequestCreated);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
 
   // Check username availability
   useEffect(() => {
