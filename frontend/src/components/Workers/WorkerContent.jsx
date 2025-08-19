@@ -30,6 +30,7 @@ const WorkerContent = ({
         return (
           <DashboardOverview
             workerStats={workerStats}
+            serviceRequests={serviceRequests}
             availability={availability}
             setAvailability={setAvailability}
             notifications={notifications}
@@ -94,6 +95,7 @@ const WorkerContent = ({
         return (
           <DashboardOverview
             workerStats={workerStats}
+            serviceRequests={serviceRequests}
             availability={availability}
             setAvailability={setAvailability}
             notifications={notifications}

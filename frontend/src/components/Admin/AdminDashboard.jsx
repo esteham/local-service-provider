@@ -901,7 +901,7 @@ const ModernAdminDashboard = () => {
           title="Total Revenue"
           value={`$${
             adminStats.totalRevenue ||
-            serviceRequests.reduce((sum, req) => sum + (req.price || 0), 0)
+            serviceRequests.reduce((sum, req) => sum + (parseFloat(req.price) || 0), 0).toFixed(2)
           }`}
           icon={FaMoneyBillWave}
           color="purple"

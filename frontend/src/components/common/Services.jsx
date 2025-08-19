@@ -308,23 +308,26 @@ const Services = () => {
           }
         }));
 
-        setState(prev => ({
-          ...prev,
-          showBookingModal: false,
-          submittingBooking: false,
-          bookingStep: 1,
-          bookingData: {
-            name: '',
-            email: '',
-            phone: '',
-            address: '',
-            preferred_date: '',
-            preferred_time: '',
-            notes: '',
-            zone_id: '',
-            area_id: ''
-          }
-        }));
+        // Delay modal close to ensure toast is visible
+        setTimeout(() => {
+          setState(prev => ({
+            ...prev,
+            showBookingModal: false,
+            submittingBooking: false,
+            bookingStep: 1,
+            bookingData: {
+              name: '',
+              email: '',
+              phone: '',
+              address: '',
+              preferred_date: '',
+              preferred_time: '',
+              notes: '',
+              zone_id: '',
+              area_id: ''
+            }
+          }));
+        }, 500);
       } else {
         toast.error(response.data.message || 'Failed to submit service request');
         setState(prev => ({ ...prev, submittingBooking: false }));

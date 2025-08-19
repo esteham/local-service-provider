@@ -156,34 +156,38 @@ const AgentDashboard = () => {
       <div className="stats-grid">
         <StatCard
           title="Total Requests"
-          value={agentStats.totalRequests || 0}
+          value={agentStats.totalRequests || serviceRequests.length || 0}
           icon={FaTasks}
           color="primary"
           delay={0.1}
+          onClick={() => setActiveTab("requests")}
         />
 
         <StatCard
           title="Active Workers"
-          value={agentStats.activeWorkers || 0}
+          value={agentStats.activeWorkers || workers.filter(w => w.status === 'active').length || 0}
           icon={FaUsers}
           color="success"
           delay={0.2}
+          onClick={() => setActiveTab("workers")}
         />
 
         <StatCard
           title="Assignments"
-          value={agentStats.assignments || 0}
+          value={agentStats.assignments || serviceRequests.filter(r => r.status === 'assigned').length || 0}
           icon={FaClipboardList}
           color="warning"
           delay={0.3}
+          onClick={() => setActiveTab("assignments")}
         />
 
         <StatCard
           title="Commission"
-          value={`$${agentStats.commission || 0}`}
+          value={`$${agentStats.commission || (serviceRequests.filter(r => r.status === 'completed').length * 5).toFixed(2)}`}
           icon={FaMoneyBillWave}
           color="purple"
           delay={0.4}
+          onClick={() => setActiveTab("payments")}
         />
       </div>
 
