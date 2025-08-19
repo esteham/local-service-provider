@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { Toaster } from 'react-hot-toast';
+import { ToastContainer } from "react-toastify";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "bootstrap/dist/css/bootstrap.min.css";
-import 'react-toastify/dist/ReactToastify.css';
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "react-datepicker/dist/react-datepicker.css";
-
+import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
+
 import Home from "./components/common/Home/Home";
 import Header from "./components/common/Header";
 import About from "./components/common/About";
@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />; // 🔁 redirect to home if not logged in
+    return <Navigate to="/" replace />;
   }
 
   if (roles && !roles.includes(user.role)) {
@@ -59,20 +59,12 @@ const RoleDashboard = () => {
 
 function App() {
   const location = useLocation();
-  const [showLogin, LoginFetchModal] = useState(false); //Control modal visibility
+  const [showLogin, LoginFetchModal] = useState(false);
 
-  const hiddenFooterRoutes = [
-    "/AdminDashboard",
-    "/AgentDashboard",
-    "/WorkerDashboard",
-  ];
+  const hiddenFooterRoutes = ["/AdminDashboard", "/AgentDashboard", "/WorkerDashboard"];
   const shouldShowFooter = !hiddenFooterRoutes.includes(location.pathname);
 
-  const hiddenHeaderRoutes = [
-    "/AdminDashboard",
-    "/AgentDashboard",
-    "/WorkerDashboard",
-  ];
+  const hiddenHeaderRoutes = ["/AdminDashboard", "/AgentDashboard", "/WorkerDashboard"];
   const shouldShowHeader = !hiddenHeaderRoutes.includes(location.pathname);
 
   return (
@@ -104,7 +96,7 @@ function App() {
           }
         />
 
-        {/* Protected Routes */}
+        {/* Protected Dashboards */}
         <Route
           path="/AgentDashboard"
           element={
@@ -138,10 +130,22 @@ function App() {
           }
         />
       </Routes>
+
       <LoginFetch show={showLogin} onHide={() => LoginFetchModal(false)} />
 
       {shouldShowFooter && <Footer />}
-      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+
+      {/* react-toastify container*/}
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </AuthProvider>
   );
 }
