@@ -837,7 +837,8 @@ const ModernAdminDashboard = () => {
     { id: "pending-users", label: "Pending Users", icon: FaUserShield },
     { id: "workers", label: "Worker Management", icon: FaUserTie },
     { id: "requests", label: "Service Requests", icon: FaTasks },
-    { id: "categories", label: "Categories", icon: FaClipboardList },
+    // { id: "categories", label: "Categories", icon: FaClipboardList },
+    { id: "services", label: "Services", icon: FaTools },
     { id: "locations", label: "Locations", icon: FaBuilding },
     { id: "analytics", label: "Analytics", icon: FaChartLine },
     { id: "finances", label: "Finances", icon: FaMoneyBillWave },
@@ -845,7 +846,6 @@ const ModernAdminDashboard = () => {
     { id: "messages", label: "Messages", icon: FaEnvelope },
     { id: "notifications", label: "Notifications", icon: FaBell },
     { id: "settings", label: "Settings", icon: FaCog },
-    { id: "services", label: "Services", icon: FaTools },
   ];
 
   const renderSidebar = () => (
