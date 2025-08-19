@@ -475,4 +475,244 @@ class EmailService {
         ";
     }
     
+    /**
+     * Send service request notification to admin
+     */
+    public function sendServiceRequestNotificationToAdmin($requestData) {
+        try {
+            // Get admin email from settings or use default
+            $adminEmail = $this->getAdminEmail();
+            
+            $subject = 'New Service Request - ' . $requestData['service_name'];
+            $message = $this->getServiceRequestAdminEmailTemplate($requestData);
+            
+            $emailSent = $this->admin->sendMail($adminEmail, $message, $subject);
+            
+            if ($emailSent) {
+                error_log("Service request notification sent to admin: $adminEmail");
+                return true;
+            } else {
+                error_log("Failed to send service request notification to admin: $adminEmail");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log('Admin service request notification failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Send service request notification to agent
+     */
+    public function sendServiceRequestNotificationToAgent($agentEmail, $agentName, $requestData) {
+        try {
+            $subject = 'New Service Request in Your Zone - ' . $requestData['service_name'];
+            $message = $this->getServiceRequestAgentEmailTemplate($agentName, $requestData);
+            
+            $emailSent = $this->admin->sendMail($agentEmail, $message, $subject);
+            
+            if ($emailSent) {
+                error_log("Service request notification sent to agent: $agentEmail");
+                return true;
+            } else {
+                error_log("Failed to send service request notification to agent: $agentEmail");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log('Agent service request notification failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get admin email from settings
+     */
+    private function getAdminEmail() {
+        $adminEmailRecord = $this->db->fetch(
+            "SELECT setting_value FROM system_settings WHERE setting_key = 'admin_email'"
+        );
+        
+        return $adminEmailRecord ? $adminEmailRecord['setting_value'] : 'admin@localserviceprovider.com';
+    }
+    
+    /**
+     * Get service request admin email template
+     */
+    private function getServiceRequestAdminEmailTemplate($requestData) {
+        $requestDate = date('M j, Y g:i A', strtotime($requestData['created_at']));
+        
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <div style='text-align: center; margin-bottom: 30px;'>
+                    <h1 style='color: #dc2626; margin: 0;'>New Service Request</h1>
+                    <p style='color: #666; margin: 5px 0;'>Admin Notification</p>
+                </div>
+                
+                <div style='background-color: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #dc2626; margin: 20px 0;'>
+                    <h2 style='color: #dc2626; margin: 0 0 15px 0;'>Request Details</h2>
+                    
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold; width: 30%;'>Request ID:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>#{$requestData['request_id']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Service:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['service_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Title:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['title']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Customer:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['contact_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Phone:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['contact_phone']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Location:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['area_name']}, {$requestData['zone_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Address:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>{$requestData['address']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Urgency:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>" . ucfirst($requestData['urgency']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;'>Price:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #e5e7eb;'>$" . number_format($requestData['final_price'], 2) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; font-weight: bold;'>Requested:</td>
+                            <td style='padding: 8px 0;'>$requestDate</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style='background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #374151;'>Description:</h4>
+                    <p style='margin: 0; color: #6b7280;'>{$requestData['description']}</p>
+                </div>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <p style='color: #666; margin: 10px 0;'>Please review this request in the admin dashboard and assign an appropriate worker.</p>
+                </div>
+                
+                <hr style='margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;'>
+                <p style='font-size: 12px; color: #6b7280; text-align: center;'>
+                    This is an automated notification from Local Service Provider.<br>
+                    Admin Dashboard - Service Request Management
+                </p>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
+    /**
+     * Get service request agent email template
+     */
+    private function getServiceRequestAgentEmailTemplate($agentName, $requestData) {
+        $requestDate = date('M j, Y g:i A', strtotime($requestData['created_at']));
+        
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <div style='text-align: center; margin-bottom: 30px;'>
+                    <h1 style='color: #3b82f6; margin: 0;'>New Service Request</h1>
+                    <p style='color: #666; margin: 5px 0;'>In Your Service Area</p>
+                </div>
+                
+                <p>Hi $agentName,</p>
+                
+                <p>A new service request has been submitted in your assigned area. Please review the details below and assign an appropriate worker.</p>
+                
+                <div style='background-color: #eff6ff; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; margin: 20px 0;'>
+                    <h2 style='color: #3b82f6; margin: 0 0 15px 0;'>Request Details</h2>
+                    
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold; width: 30%;'>Request ID:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>#{$requestData['request_id']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Service:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['service_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Title:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['title']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Customer:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['contact_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Phone:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['contact_phone']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Location:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['area_name']}, {$requestData['zone_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Address:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>{$requestData['address']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Urgency:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>" . ucfirst($requestData['urgency']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe; font-weight: bold;'>Price:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dbeafe;'>$" . number_format($requestData['final_price'], 2) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; font-weight: bold;'>Requested:</td>
+                            <td style='padding: 8px 0;'>$requestDate</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style='background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #374151;'>Description:</h4>
+                    <p style='margin: 0; color: #6b7280;'>{$requestData['description']}</p>
+                </div>
+                
+                <div style='background-color: #fef3c7; padding: 15px; border-radius: 5px; border-left: 4px solid #f59e0b; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #92400e;'>Action Required:</h4>
+                    <ul style='margin: 0; padding-left: 20px; color: #92400e;'>
+                        <li>Log into your agent dashboard</li>
+                        <li>Review the service request details</li>
+                        <li>Assign an available worker from your area</li>
+                        <li>Monitor the service progress</li>
+                    </ul>
+                </div>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <p style='color: #666; margin: 10px 0;'>Please assign this request promptly to ensure customer satisfaction.</p>
+                </div>
+                
+                <hr style='margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;'>
+                <p style='font-size: 12px; color: #6b7280; text-align: center;'>
+                    This is an automated notification from Local Service Provider.<br>
+                    Agent Dashboard - Service Request Management
+                </p>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
 }

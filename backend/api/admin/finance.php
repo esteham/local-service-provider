@@ -39,19 +39,19 @@ try {
                 $payment = new Payment();
                 
                 // Get basic financial overview using proper PDO methods
-                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'completed'");
+                $stmt = $db->prepare("SELECT COALESCE(SUM(final_price), 0) as total FROM service_requests WHERE status IN ('completed', 'paid')");
                 $stmt->execute();
                 $totalRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'completed' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
+                $stmt = $db->prepare("SELECT COALESCE(SUM(final_price), 0) as total FROM service_requests WHERE status IN ('completed', 'paid') AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())");
                 $stmt->execute();
                 $monthlyRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                $stmt = $db->prepare("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE payment_status = 'pending'");
+                $stmt = $db->prepare("SELECT COALESCE(SUM(final_price), 0) as total FROM service_requests WHERE status = 'pending'");
                 $stmt->execute();
                 $pendingPayments = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
                 
-                $stmt = $db->prepare("SELECT COUNT(*) as count FROM payments WHERE payment_status = 'completed'");
+                $stmt = $db->prepare("SELECT COUNT(*) as count FROM service_requests WHERE status IN ('completed', 'paid')");
                 $stmt->execute();
                 $transactionCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
                 
@@ -79,13 +79,18 @@ try {
                 $response = [
                     'success' => true,
                     'data' => [
-                        'total_revenue' => floatval($totalRevenue),
-                        'monthly_revenue' => floatval($monthlyRevenue),
-                        'pending_payments' => floatval($pendingPayments),
-                        'platform_commission' => floatval($totalCommission),
-                        'worker_payouts' => floatval($totalRevenue - $totalCommission),
-                        'average_transaction' => floatval($avgTransaction),
-                        'transaction_count' => intval($transactionCount),
+                        'totalRevenue' => floatval($totalRevenue),
+                        'monthlyRevenue' => floatval($monthlyRevenue),
+                        'pendingPayments' => floatval($pendingPayments),
+                        'platformCommission' => floatval($totalCommission),
+                        'workerPayouts' => floatval($totalRevenue - $totalCommission),
+                        'averageTransaction' => floatval($avgTransaction),
+                        'transactionCount' => intval($transactionCount),
+                        'monthlyCommission' => floatval($monthlyCommission),
+                        'pendingCommission' => floatval($pendingPayments * 0.10),
+                        'completedTransactions' => intval($transactionCount),
+                        'averageCommission' => floatval($avgTransaction * 0.10),
+                        'commissionRate' => 10.0,
                         
                         // Admin commission data
                         'admin_commission' => [

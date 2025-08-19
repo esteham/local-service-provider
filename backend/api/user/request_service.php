@@ -3,6 +3,7 @@ require_once '../config/init.php';
 require_once '../../classes/Auth.php';
 require_once '../../classes/Pricing.php';
 require_once '../../classes/DB.php';
+require_once '../../classes/EmailService.php';
 
 header('Content-Type: application/json');
 
@@ -83,6 +84,7 @@ if ($scheduledAt && strtotime($scheduledAt) <= time()) {
 try {
     $db = DB::getInstance();
     $pricing = new Pricing();
+    $emailService = new EmailService();
     
     // Verify service exists
     $service = $db->fetch("SELECT * FROM services WHERE id = ? AND status = 'active'", [$serviceId]);
@@ -151,7 +153,7 @@ try {
         [$areaId, $zoneId]
     );
     
-    // Create notifications for all responsible agents
+    // Create notifications for all responsible agents and send emails
     foreach ($agents as $agent) {
         $agentNotificationData = [
             'user_id' => $agent['user_id'],
@@ -160,7 +162,47 @@ try {
             'type' => 'info'
         ];
         $db->insert('notifications', $agentNotificationData);
+        
+        // Send email notification to agent
+        $agentName = ($agent['first_name'] && $agent['last_name']) 
+            ? $agent['first_name'] . ' ' . $agent['last_name']
+            : $agent['username'];
+            
+        $emailService->sendServiceRequestNotificationToAgent(
+            $agent['email'],
+            $agentName,
+            [
+                'request_id' => $requestId,
+                'service_name' => $service['name'],
+                'title' => $title,
+                'contact_name' => $contactName,
+                'contact_phone' => $contactPhone,
+                'area_name' => $area['name'],
+                'zone_name' => $area['zone_name'],
+                'address' => $address,
+                'urgency' => $urgency,
+                'final_price' => $finalPrice,
+                'description' => $description,
+                'created_at' => date('Y-m-d H:i:s')
+            ]
+        );
     }
+    
+    // Send email notification to admin
+    $emailService->sendServiceRequestNotificationToAdmin([
+        'request_id' => $requestId,
+        'service_name' => $service['name'],
+        'title' => $title,
+        'contact_name' => $contactName,
+        'contact_phone' => $contactPhone,
+        'area_name' => $area['name'],
+        'zone_name' => $area['zone_name'],
+        'address' => $address,
+        'urgency' => $urgency,
+        'final_price' => $finalPrice,
+        'description' => $description,
+        'created_at' => date('Y-m-d H:i:s')
+    ]);
     
     // Commit transaction
     $db->commit();
