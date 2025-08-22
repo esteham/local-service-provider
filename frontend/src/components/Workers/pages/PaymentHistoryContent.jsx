@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Badge, Button, Row, Col, Spinner, Alert } from 'react-bootstrap';
 import { toast } from 'react-toastify';
+import { jsPDF } from 'jspdf';
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -45,33 +46,49 @@ const PaymentHistoryContent = () => {
       
       if (response.data.success) {
         const slip = response.data.data;
-        // Create a simple text receipt for download
-        const receiptText = `
-PAYMENT RECEIPT
-===============
-
-Receipt #: ${slip.slip_number}
-Service: ${slip.service_name}
-Customer: ${slip.user_name}
-Amount: $${slip.amount}
-Payment Method: ${slip.payment_method.charAt(0).toUpperCase() + slip.payment_method.slice(1)}
-Payment Date: ${new Date(slip.payment_date).toLocaleString()}
-${slip.transaction_id ? `Transaction ID: ${slip.transaction_id}\n` : ''}
-Status: Completed and Verified
-
-${slip.service_description ? `Description: ${slip.service_description}\n\n` : ''}Generated on: ${new Date().toLocaleString()}
-Local Service Provider - Worker Receipt
-        `;
         
-        const blob = new Blob([receiptText], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `worker-receipt-${slipNumber}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Create a PDF document
+        const doc = new jsPDF();
+        
+        // Set font properties
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(20);
+        doc.text("PAYMENT RECEIPT", 105, 20, null, null, "center");
+        
+        // Add a line separator
+        doc.setLineWidth(0.5);
+        doc.line(20, 25, 190, 25);
+        
+        // Reset font for content
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(12);
+        
+        // Add payment details
+        const startY = 40;
+        const lineHeight = 10;
+        
+        doc.text(`Receipt #: ${slip.slip_number}`, 20, startY);
+        doc.text(`Service: ${slip.service_name}`, 20, startY + lineHeight);
+        doc.text(`Customer: ${slip.user_name}`, 20, startY + lineHeight * 2);
+        doc.text(`Amount: $${slip.amount}`, 20, startY + lineHeight * 3);
+        doc.text(`Payment Method: ${slip.payment_method.charAt(0).toUpperCase() + slip.payment_method.slice(1)}`, 20, startY + lineHeight * 4);
+        doc.text(`Payment Date: ${new Date(slip.payment_date).toLocaleString()}`, 20, startY + lineHeight * 5);
+        
+        if (slip.transaction_id) {
+          doc.text(`Transaction ID: ${slip.transaction_id}`, 20, startY + lineHeight * 6);
+        }
+        
+        doc.text("Status: Completed and Verified", 20, startY + lineHeight * 7);
+        
+        if (slip.service_description) {
+          doc.text(`Description: ${slip.service_description}`, 20, startY + lineHeight * 8);
+        }
+        
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, startY + lineHeight * 9);
+        doc.text("Local Service Provider - Worker Receipt", 20, startY + lineHeight * 10);
+        
+        // Save the PDF
+        doc.save(`worker-receipt-${slipNumber}.pdf`);
         
         toast.success('Payment receipt downloaded successfully!');
       } else {
