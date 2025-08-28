@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 session_start();
 require_once '../../config/database.php';
 require_once '../../middleware/auth.php';
+require_once '../../classes/EmailService.php';
 
 // Check if user is agent
 $currentUser = getCurrentUser();
@@ -63,8 +64,9 @@ try {
     $db->beginTransaction();
     
     // Verify service request exists and is in agent's zone/area
-    $requestQuery = "SELECT sr.*, a.zone_id as request_zone_id, a.id as request_area_id
+    $requestQuery = "SELECT sr.*, s.name as service_name, a.zone_id as request_zone_id, a.id as request_area_id
                      FROM service_requests sr
+                     LEFT JOIN services s ON sr.service_id = s.id
                      LEFT JOIN areas a ON sr.area_id = a.id
                      WHERE sr.id = ?";
     $requestStmt = $db->prepare($requestQuery);
@@ -165,10 +167,38 @@ try {
     // Create notification for customer
     $customerNotificationQuery = "INSERT INTO notifications (user_id, title, message, type, created_at) 
                                  VALUES (?, ?, ?, 'info', NOW())";
+    
+    // Create notification for customer
+    $customerNotificationQuery = "INSERT INTO notifications (user_id, title, message, type, created_at) 
+                                 VALUES (?, ?, ?, 'info', NOW())";
     $customerNotificationStmt = $db->prepare($customerNotificationQuery);
     $customerNotificationTitle = "Worker Assigned";
     $customerNotificationMessage = "A worker has been assigned to your service request: " . ($request['title'] ?? 'Untitled Request');
     $customerNotificationStmt->execute([$request['user_id'], $customerNotificationTitle, $customerNotificationMessage]);
+// Send email notification to user
+    $userQuery = "SELECT email, first_name, last_name FROM users WHERE id = ?";
+    $userStmt = $db->prepare($userQuery);
+    $userStmt->execute([$request['user_id']]);
+    $user = $userStmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($user) {
+        $emailService = new EmailService();
+        $userName = trim($user['first_name'] . ' ' . $user['last_name']);
+        if (empty($userName)) {
+            $userName = 'User';
+        }
+        
+        $assignmentData = [
+            'request_id' => $requestId,
+            'service_name' => $request['service_name'] ?? 'Service',
+            'title' => $request['title'] ?? 'Untitled Request',
+            'worker_name' => $worker['first_name'] . ' ' . $worker['last_name'],
+            'assigned_at' => date('Y-m-d H:i:s'),
+            'description' => $request['description'] ?? ''
+        ];
+        
+        $emailService->sendWorkerAssignmentNotificationToUser($user['email'], $userName, $assignmentData);
+    }
     
     // Commit transaction
     $db->commit();

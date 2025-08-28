@@ -715,4 +715,108 @@ class EmailService {
         ";
     }
     
+    /**
+     * Send worker assignment notification to user
+     */
+    public function sendWorkerAssignmentNotificationToUser($userEmail, $userName, $assignmentData) {
+        try {
+            $subject = 'Worker Assigned to Your Service Request - ' . $assignmentData['service_name'];
+            $message = $this->getWorkerAssignmentEmailTemplate($userName, $assignmentData);
+            
+            $emailSent = $this->admin->sendMail($userEmail, $message, $subject);
+            
+            if ($emailSent) {
+                error_log("Worker assignment notification sent to user: $userEmail");
+                return true;
+            } else {
+                error_log("Failed to send worker assignment notification to user: $userEmail");
+                return false;
+            }
+            
+        } catch (Exception $e) {
+            error_log('User worker assignment notification failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get worker assignment email template
+     */
+    private function getWorkerAssignmentEmailTemplate($userName, $assignmentData) {
+        $assignedDate = date('M j, Y g:i A', strtotime($assignmentData['assigned_at']));
+        
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <div style='text-align: center; margin-bottom: 30px;'>
+                    <h1 style='color: #10b981; margin: 0;'>Worker Assigned!</h1>
+                    <p style='color: #666; margin: 5px 0;'>Great news, $userName!</p>
+                </div>
+                
+                <p>Hi $userName,</p>
+                
+                <p>Good news! A worker has been assigned to your service request. Here are the details:</p>
+                
+                <div style='background-color: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid #10b981; margin: 20px 0;'>
+                    <h2 style='color: #10b981; margin: 0 0 15px 0;'>Service Details</h2>
+                    
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold; width: 30%;'>Request ID:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7;'>#{$assignmentData['request_id']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;'>Service:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7;'>{$assignmentData['service_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;'>Title:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7;'>{$assignmentData['title']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;'>Worker:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7;'>{$assignmentData['worker_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7; font-weight: bold;'>Assigned:</td>
+                            <td style='padding: 8px 0; border-bottom: 1px solid #dcfce7;'>$assignedDate</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; font-weight: bold;'>Estimated Completion:</td>
+                            <td style='padding: 8px 0;'>Within 24-48 hours</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style='background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #374151;'>Service Description:</h4>
+                    <p style='margin: 0; color: #6b7280;'>{$assignmentData['description']}</p>
+                </div>
+                
+                <div style='background-color: #dbeafe; padding: 15px; border-radius: 5px; border-left: 4px solid #3b82f6; margin: 20px 0;'>
+                    <h4 style='margin: 0 0 10px 0; color: #1e40af;'>What to Expect Next:</h4>
+                    <ul style='margin: 0; padding-left: 20px; color: #1e40af;'>
+                        <li>Your assigned worker will contact you shortly to confirm details</li>
+                        <li>They will arrive at the scheduled time to complete your service</li>
+                        <li>You'll receive updates on the progress of your service</li>
+                        <li>After completion, you'll be prompted to confirm and make payment</li>
+                    </ul>
+                </div>
+                
+                <div style='text-align: center; margin: 30px 0;'>
+                    <p style='color: #666; margin: 10px 0;'>If you have any questions or concerns, please don't hesitate to contact our support team.</p>
+                </div>
+                
+                <hr style='margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;'>
+                <p style='font-size: 12px; color: #6b7280; text-align: center;'>
+                    This is an automated notification from Local Service Provider.<br>
+                    Customer Dashboard - Service Request Management
+                </p>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+    
 }
