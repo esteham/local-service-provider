@@ -821,6 +821,7 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `username` varchar(100) NOT NULL,
   `email` varchar(100) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('admin','agent','worker','user') NOT NULL DEFAULT 'user',
   `status` enum('active','inactive','pending','email_pending','rejected') DEFAULT 'email_pending',

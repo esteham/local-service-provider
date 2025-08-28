@@ -205,8 +205,8 @@ class User {
     public function getUserProfile($id) {
         try {
             $user = $this->db->fetch(
-                "SELECT u.id, u.username, u.email, u.role, u.status, u.created_at, u.phone, u.image,
-                        w.phone AS worker_phone, w.address, w.skills, w.experience, w.hourly_rate, w.availability
+                "SELECT u.id, u.username, u.address, u.email, u.role, u.status, u.created_at, u.phone, u.image,
+                        w.phone AS worker_phone, w.address AS worker_address, w.skills, w.experience, w.hourly_rate, w.availability
                  FROM users u
                  LEFT JOIN workers w ON u.id = w.user_id
                  WHERE u.id = ?",
@@ -216,6 +216,16 @@ class User {
             if (!$user) {
                 return ['success' => false, 'message' => 'User not found'];
             }
+            
+            // Use worker address if available, otherwise use user address
+            if (empty($user['worker_address']) && !empty($user['address'])) {
+                $user['address'] = $user['address'];
+            } else if (!empty($user['worker_address'])) {
+                $user['address'] = $user['worker_address'];
+            }
+            
+            // Clean up the worker_address field from the result
+            unset($user['worker_address']);
             
             return [
                 'success' => true,
@@ -242,6 +252,9 @@ class User {
                 }
                 if (isset($profileData['phone'])) {
                     $userData['phone'] = $profileData['phone'];
+                }
+                if (isset($profileData['address'])) {
+                    $userData['address'] = $profileData['address'];
                 }
                 
                 $this->db->update('users', $userData, ['id' => $id]);
