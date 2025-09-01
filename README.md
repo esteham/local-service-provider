@@ -4,7 +4,7 @@ A full-stack web application where users can request nearby service providers (e
 
 ---
 
-![Screenshot](public/screenshot 1.png)
+![Screenshot](public/screenshot01.png)
 
 
 
