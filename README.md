@@ -17,6 +17,9 @@ A full-stack web application where users can request nearby service providers (e
 
 ### 👤 Users
 - Register/Login
+```bash
+   |__Click reg and fill all input with valid email. When you submit your form then automatic sent a OTP in your mail and       submmit your OTP then create your accout successfully
+```
 - Request local services
 - View dynamic pricing
 - Track service status & history
@@ -29,6 +32,11 @@ A full-stack web application where users can request nearby service providers (e
 
 ### 🛡️ Admin
 - Manage users & providers
+```bash
+  |__ user     : admin
+  |__ password : 09876543
+```
+
 - Set zone-based pricing rules
 - Control demand-supply multipliers
 - Assign zones & areas
