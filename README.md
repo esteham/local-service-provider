@@ -14,9 +14,8 @@ A full-stack web application where users can request nearby service providers (e
 
 ## Web link
 
-```bash
 <a href="https://kamla.xetroot.com/" target="_blank">Visit Kamla</a>
-```
+
 
 ## 🚀 Features
 
